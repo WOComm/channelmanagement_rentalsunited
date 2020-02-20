@@ -1,0 +1,6 @@
+<patTemplate:tmpl name="pageoutput">
+< Push_PutPropertyReviews_RQ>  <Authentication>    <UserName>Test</UserName>    <Password>Test</Password>  </Authentication>  <Reviews PropertyID="123">    <Review>      <FirstName>John</FirstName>      <LastName>Smith</LastName>      <DisplayName>John S</DisplayName>      <Email>JohnS@domain.com</Email>      <Rating>5</Rating>      <ArrivalDate>2015-04-02</ArrivalDate>      <Submitted>2015-05-01</Submitted>      <Texts>        <Text LanguageID="1">Very nice flat</Text>        <Text LanguageID="3">Bardzo ładne mieszkanie</Text>
+RENTALSUNITED http://www.RentalsUnited.com
+      </Texts>    </Review>  </Reviews> </Push_PutPropertyReviews_RQ>
+	  </patTemplate:tmpl>
+	  

@@ -1,0 +1,18 @@
+<patTemplate:tmpl name="pageoutput">
+< Push_PutLongStayDiscounts_RQ>  
+<Authentication>    
+<UserName>Test</UserName>    <Password>Test</Password>  </Authentication>  
+<LongStays PropertyID="1">    
+	<LongStay DateFrom="2012-03-01" DateTo="2012-09-10" Bigger="2" Smaller="20">
+10    
+</LongStay>    
+<LongStay DateFrom="2012-09-11" DateTo="2012-12-01" Bigger="2" Smaller="20">
+      20    
+	  </LongStay>    
+	  <LongStay DateFrom="2012-12-02" DateTo="2012-12-11" Bigger="2" Smaller="20">
+RENTALSUNITED http://www.RentalsUnited.com
+      5    
+	  </LongStay>  
+	  </LongStays> 
+	  </Push_PutLongStayDiscounts_RQ>
+</patTemplate:tmpl>

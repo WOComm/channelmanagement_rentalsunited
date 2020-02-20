@@ -1,0 +1,5 @@
+<patTemplate:tmpl name="pageoutput">
+< Push_PutMinstay_RQ>  <Authentication>    <UserName>Test</UserName>    <Password>Test</Password>  </Authentication>  <PropertyMinStay PropertyID="1">    <MinStay DateFrom="2012-03-01" DateTo="2012-03-05">4</MinStay>    <MinStay DateFrom="2012-05-05" DateTo="2012-04-03">3</MinStay>
+RENTALSUNITED http://www.RentalsUnited.com
+    <MinStay DateFrom="2012-04-03" DateTo="2012-09-09">2</MinStay>    <MinStay DateFrom="2012-09-09" DateTo="2013-03-02">1</MinStay>  </PropertyMinStay> </Push_PutMinstay_RQ>
+	</patTemplate:tmpl>

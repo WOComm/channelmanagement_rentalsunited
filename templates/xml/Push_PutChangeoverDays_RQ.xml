@@ -1,0 +1,3 @@
+<patTemplate:tmpl name="pageoutput">
+< Push_PutChangeoverDays_RQ>    <Authentication>        <UserName>test</UserName>        <Password>test</Password>    </Authentication>    <PropertyID>1</PropertyID>    <StartDate>2014-10-10</StartDate>    <Changeover>11122233344</Changeover> </Push_PutChangeoverDays_RQ>
+</patTemplate:tmpl>

@@ -1,0 +1,3 @@
+<patTemplate:tmpl name="pageoutput">
+< Push_PutPropertyBasePrice_RQ>  <Authentication>    <UserName>Test</UserName>    <Password>Test</Password>  </Authentication>  <PropertyBasePrices PropertyID="1">    <BasePrice DayOfWeek="0" Price="100" Extra="10"/>    <BasePrice DayOfWeek="1" Price="100" Extra="10"/>    <BasePrice DayOfWeek="2" Price="120" Extra="15"/>    <BasePrice DayOfWeek="3" Price="120" Extra="20"/>    <BasePrice DayOfWeek="4" Price="120" Extra="20"/>    <BasePrice DayOfWeek="5" Price="200" Extra="20"/>    <BasePrice DayOfWeek="6" Price="200" Extra="20"/>  </PropertyBasePrices> </Push_PutPropertyBasePrice_RQ>
+</patTemplate:tmpl>

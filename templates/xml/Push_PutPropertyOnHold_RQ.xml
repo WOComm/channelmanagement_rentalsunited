@@ -1,0 +1,9 @@
+<patTemplate:tmpl name="pageoutput">
+<Push_PutPropertyOnHold_RQ>  
+	<Authentication>    <UserName>Test</UserName>    <Password>Test</Password>  </Authentication>  
+	<PropertyID>1</PropertyID>  
+	<DateFrom>2012-03-01</DateFrom>  
+	<DateTo>2012-03-10</DateTo>  
+	<NumberOfGuests>2</NumberOfGuests> 
+</Push_PutPropertyOnHold_RQ>
+</patTemplate:tmpl>

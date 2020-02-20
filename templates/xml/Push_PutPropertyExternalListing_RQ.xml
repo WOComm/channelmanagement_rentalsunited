@@ -1,0 +1,14 @@
+<patTemplate:tmpl name="pageoutput">
+<Push_PutPropertyExternalListing_RQ>  
+	{AUTHENTICATION}
+	<Properties>
+	<patTemplate:tmpl name="properties">
+		<Property ID="0">      
+			<Url>{URL}</Url>      
+			<Status>{STATUS}</Status>      
+			<Description>{DESCRIPTION}</Description>    
+		</Property> 
+	</patTemplate:tmpl>
+	</Properties> 
+</Push_PutPropertyExternalListing_RQ>
+</patTemplate:tmpl>

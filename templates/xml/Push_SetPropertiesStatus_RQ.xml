@@ -1,0 +1,3 @@
+<patTemplate:tmpl name="pageoutput">
+<Push_SetPropertiesStatus_RQ>  <Authentication>    <UserName>Test</UserName>    <Password>Test</Password>  </Authentication>  <IsActive>0</IsActive>  <IsArchived>0</IsArchived>  <PropertyIDs>    <PropertyID>1</PropertyID>    <PropertyID>4</PropertyID>    <PropertyID>13</PropertyID>  </PropertyIDs> </Push_SetPropertiesStatus_RQ>
+</patTemplate:tmpl>
