@@ -28,7 +28,7 @@ class channelmanagement_rentalsunited_push_event_trigger_crossref
 		$this->events = array (
 			'blackbooking_added'		=> [ 'Push_PutAvb_RQ' , 'Push_PutPropertyOnHold_RQ'  , 'Push_PutPropertiesOnHold_RQ'  ],        
 			'blackbooking_deleted'		=> [  ],
-			'booking_added'				=> [ 'Push_PutConfirmedReservation_RQ' ],   
+			'booking_added'				=> [ 'Push_PutConfirmedReservationMulti_RQ' ],
 			'booking_cancelled'			=> [ 'Push_CancelReservation_RQ'  , 'Push_ArchiveReservation_RQ' ], 
 			'booking_marked_noshow'		=> [  ],
 			'booking_modified'			=> [ 'Push_ModifyStay_RQ' ],

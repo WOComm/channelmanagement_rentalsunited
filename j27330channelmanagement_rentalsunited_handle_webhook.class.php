@@ -53,23 +53,21 @@ class j27330channelmanagement_rentalsunited_handle_webhook
 		$managers = $componentArgs['managers'];
 
 		if ( isset($push_events[$webhook_event]) ) {
-			
 			$push_tasks = $push_events[$webhook_event];
 			if (!empty($push_tasks) ) {
 				foreach ( $push_tasks as $task ) {
 					$file_name = $ePointFilepath.'xml_'.$task.'.php';
-					//var_dump($file_name);
+					//todo make this try catch
 					if (file_exists($file_name)) {
 						$class_name = $task;
 						require_once($file_name);
 						$new_class = new $class_name();
-						$new_class->trigger_event($webhook_event , $componentArgs['webhook_notification']->data , $channel_data , $managers , $this_channel );
+						$xml = $new_class->trigger_event($webhook_event , $componentArgs['webhook_notification']->data , $channel_data , $managers , $this_channel );
 						unset($new_class);
 						var_dump($file_name);
 					}
 				}
 			}
-			//var_dump($push_tasks);
 		}
 		
 
