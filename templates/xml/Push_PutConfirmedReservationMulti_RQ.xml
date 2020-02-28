@@ -1,31 +1,34 @@
 <patTemplate:tmpl name="pageoutput">
-<Reservation>
-	<StayInfos>
-		<patTemplate:tmpl name="rows">
-		<StayInfo>
-			<PropertyID>{REMOTE_PROPERTY_UID}</PropertyID>
-			<DateFrom>{DATE_FROM}</DateFrom>
-			<DateTo>{DATE_TO}</DateTo>
-			<NumberOfGuests>{GUEST_NUMBER}</NumberOfGuests>
-			<Costs>
-				<RUPrice>{RUPRICE}</RUPrice>
-				<ClientPrice>{CLIENTPRICE}</ClientPrice>
-				<AlreadyPaid>{ALREADYPAID}</AlreadyPaid>
-			</Costs>
-		</StayInfo>
-		</patTemplate:tmpl>
-	</StayInfos>
-	<CustomerInfo>
-		<Name>{NAME}</Name>
-		<SurName>{SURNAME}</SurName>
-		<Email>{EMAIL}</Email>
-		<Phone>{PHONE}</Phone>
-		<SkypeID></SkypeID>
-		<Address>{ADDRESS}</Address>
-		<ZipCode>{POSTCODE}</ZipCode>
-		<LanguageID>1</LanguageID>
-		<CountryID>{COUNTRY_ID}</CountryID>
-	</CustomerInfo>
-	<Comments>{COMMENTS}</Comments>
-</Reservation>
+<Push_PutConfirmedReservationMulti_RQ>
+	{AUTHENTICATION}
+	<Reservation>
+		<StayInfos>
+			<patTemplate:tmpl name="rows">
+			<StayInfo>
+				<PropertyID>{REMOTE_PROPERTY_UID}</PropertyID>
+				<DateFrom>{DATE_FROM}</DateFrom>
+				<DateTo>{DATE_TO}</DateTo>
+				<NumberOfGuests>{GUEST_NUMBER}</NumberOfGuests>
+				<Costs>
+					<RUPrice>{RUPRICE}</RUPrice>
+					<ClientPrice>{CLIENTPRICE}</ClientPrice>
+					<AlreadyPaid>{ALREADYPAID}</AlreadyPaid>
+				</Costs>
+			</StayInfo>
+			</patTemplate:tmpl>
+		</StayInfos>
+		<CustomerInfo>
+			<Name>{NAME}</Name>
+			<SurName>{SURNAME}</SurName>
+			<Email>{EMAIL}</Email>
+			<Phone>{PHONE}</Phone>
+			<SkypeID></SkypeID>
+			<Address>{ADDRESS}</Address>
+			<ZipCode>{POSTCODE}</ZipCode>
+			<LanguageID>1</LanguageID>
+			<CountryID>{COUNTRY_ID}</CountryID>
+		</CustomerInfo>
+		<Comments>{COMMENTS}</Comments>
+	</Reservation>
+</Push_PutConfirmedReservationMulti_RQ>
 </patTemplate:tmpl>

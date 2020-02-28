@@ -18,22 +18,32 @@ class channelmanagement_rentalsunited_import_property
 	
 	public static function import_property( $channel , $remote_property_id = 0 , $proxy_id = 0 )
 	{
+
 		$channelmanagement_framework_singleton = jomres_singleton_abstract::getInstance('channelmanagement_framework_singleton'); 
 		
 		$JRUser									= jomres_singleton_abstract::getInstance( 'jr_user' );
-		
-		jr_import('channelmanagement_framework_user_accounts');
-		$channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
-		$user_accounts = $channelmanagement_framework_user_accounts->get_accounts_for_user($JRUser->id);
 
-		jr_import('channelmanagement_rentalsunited_communication');
-		$channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
-		$channelmanagement_rentalsunited_communication->set_username($user_accounts['rentalsunited']['channel_management_rentals_united_username']);
-		$channelmanagement_rentalsunited_communication->set_password($user_accounts['rentalsunited']['channel_management_rentals_united_password']);
-		
 		$mapped_dictionary_items = channelmanagement_framework_utilities :: get_mapped_dictionary_items ( $channel , $mapped_to_jomres_only = true );
-		
-		$remote_property = $channelmanagement_rentalsunited_communication->communicate( array( "PropertyID" => $remote_property_id ) , 'Pull_ListSpecProp_RQ' );
+
+        jr_import('channelmanagement_rentalsunited_communication');
+        $channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
+
+        set_showtime("property_managers_id" , $JRUser->id );
+        $auth = get_auth();
+
+        $output = array(
+            "AUTHENTICATION" => $auth,
+            "PROPERTY_ID" => $remote_property_id,
+        );
+
+
+        $tmpl = new patTemplate();
+        $tmpl->addRows('pageoutput', array($output));
+        $tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
+        $tmpl->readTemplatesFromInput('Pull_ListSpecProp_RQ.xml');
+        $xml_str = $tmpl->getParsedTemplate();
+
+		$remote_property = $channelmanagement_rentalsunited_communication->communicate( 'Pull_ListSpecProp_RQ' , $xml_str );
 
 		// IsArchived
 		if ($remote_property['Property']['IsArchived'] != "true" ) {
@@ -50,7 +60,6 @@ class channelmanagement_rentalsunited_import_property
 					if ($amenity_id == 257 ) {  // Will this change?
 						if ( isset($mapped_dictionary_items['Pull_ListCompositionRooms_RQ']) && array_key_exists ( $amenity_id , $mapped_dictionary_items['Pull_ListCompositionRooms_RQ'] ) ) {
 							$arr = $mapped_dictionary_items['Pull_ListCompositionRooms_RQ'][$amenity_id];
-							$count = count($mapped_dictionary_items['Pull_ListCompositionRooms_RQ'][$amenity_id]);
 							unset($arr->item);
 
 							$count = 0;
@@ -66,11 +75,10 @@ class channelmanagement_rentalsunited_import_property
 				}
 				$property_room_types = array_unique($property_room_types, SORT_REGULAR);
 			}
-			
-			
-			// room features
+
+            // room features
 			$property_room_features = array();
- 			if (!empty($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'])){
+ 			if (!empty($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities']) && !empty($mapped_dictionary_items['Pull_ListAmenitiesAvailableForRooms_RQ'] )){
 				foreach ($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'] as $amenity) {
 					$amenity_id = $amenity[$atts]['CompositionRoomID'];
 					
@@ -240,7 +248,7 @@ class channelmanagement_rentalsunited_import_property
 			jr_import('channelmanagement_rentalsunited_import_prices');
 			// $mrp_or_srp
 			foreach ($property_room_types as $room_type ) {
-				$response = channelmanagement_rentalsunited_import_prices::import_prices( $channel , $remote_property_id , $new_property_id , $remote_property['Property']['CanSleepMax'] , $room_type['amenity']->jomres_id );
+				$response = channelmanagement_rentalsunited_import_prices::import_prices( $JRUser->id , $channel , $remote_property_id , $new_property_id , $remote_property['Property']['CanSleepMax'] , $room_type['amenity']->jomres_id );
 
 				// Trying to figure out how many rooms there are in the property.
 				$number_of_rooms = floor( (int)$remote_property['Property']['CanSleepMax'] / (int)$remote_property['Property']['StandardGuests'] );

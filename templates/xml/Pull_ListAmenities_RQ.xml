@@ -1,0 +1,5 @@
+<patTemplate:tmpl name="pageoutput">
+<Pull_ListAmenities_RQ>
+    {AUTHENTICATION}
+</Pull_ListAmenities_RQ>
+</patTemplate:tmpl>

@@ -1,0 +1,6 @@
+<patTemplate:tmpl name="pageoutput">
+    <Pull_ListSpecProp_RQ>
+        {AUTHENTICATION}
+        <PropertyID>{PROPERTY_ID}</PropertyID>
+    </Pull_ListSpecProp_RQ>
+</patTemplate:tmpl>

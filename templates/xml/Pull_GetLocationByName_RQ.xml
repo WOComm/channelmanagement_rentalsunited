@@ -1,0 +1,6 @@
+<patTemplate:tmpl name="pageoutput">
+    <Pull_GetLocationByName_RQ>
+        {AUTHENTICATION}
+        <LocationName>{LOCATION}</LocationName>
+    </Pull_GetLocationByName_RQ>
+</patTemplate:tmpl>

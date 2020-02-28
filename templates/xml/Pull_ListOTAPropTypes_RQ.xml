@@ -1,0 +1,5 @@
+<patTemplate:tmpl name="pageoutput">
+<Pull_ListOTAPropTypes_RQ>
+    {AUTHENTICATION}
+</Pull_ListOTAPropTypes_RQ>
+</patTemplate:tmpl>

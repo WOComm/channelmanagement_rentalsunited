@@ -32,42 +32,39 @@ class Push_PutConfirmedReservationMulti_RQ
 	{
 		if ( isset($channel_data['channel_name']) && $channel_data['channel_name'] != '' ) {
 			if ($this_channel == $channel_data['channel_name']) {
-				echo "nope";exit;
-				return;
+                throw new Exception ( "Webhook triggered by this channel, will not process further");
 			}
 		}
 
         $ePointFilepath=get_showtime('ePointFilepath');
 
-		$this_channel = 'rentalsunited';
         $target_xml_file = 'Push_PutConfirmedReservationMulti_RQ.xml';
 
-        // Todo check channel_data, if channel is this channel, then do nothing, just return
         //var_dump($data);exit;
-		//var_dump($channel_data);exit;
+		// var_dump($channel_data);exit;
 		// var_dump($managers);exit;
-
+        //var_dump($managers);exit;
 		// We need the manager's id, if we can't find it we'll back out
         $first_key = array_key_first ($managers);
         if ( !isset($managers[$first_key]['user_id']) ||  $managers[$first_key]['user_id'] == 0 ) {
-            return;
+            throw new Exception ( "Cannot identify property manager's id");
         } else {
             set_showtime("property_managers_id" , $managers[$first_key]['user_id'] );
         }
 
         if ( !isset($data->property_uid) || $data->property_uid == 0 ) {
-            return;
+            throw new Exception ( "Property uid not set");
         }
 
         if ( !isset($data->contract_uid) || $data->contract_uid == 0 ) {
-            return;
+            throw new Exception ( "Contract uid not set");
         }
 
         $channelmanagement_framework_singleton = jomres_singleton_abstract::getInstance('channelmanagement_framework_singleton');
         $response = $channelmanagement_framework_singleton->rest_api_communicate( $this_channel , 'GET' , 'cmf/properties/ids');
 
         if (!isset($response->data->response)) {
-            return;
+            throw new Exception ( "Channel not associated with any properties or api failed to connect");
         }
 
         $remote_property_uid = 0;
@@ -79,7 +76,7 @@ class Push_PutConfirmedReservationMulti_RQ
         }
 
         if ($remote_property_uid == 0) {
-            return;
+            throw new Exception ( "Could not identify the remote property id");
         }
 
         // Was going to use this, but the get property booking cmf endpoint includes guest numbers so we'll use that instead of reinventing the wheel
@@ -90,34 +87,44 @@ class Push_PutConfirmedReservationMulti_RQ
         $booking_data_response = $channelmanagement_framework_singleton->rest_api_communicate( $this_channel , 'GET' ,  $endpoint);
 
         if (!isset($booking_data_response->data->response[0])) {
-            return;
+            throw new Exception ( "Could not get booking data");
         }
-
-        jr_import('channelmanagement_framework_user_accounts');
-        $channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
-        $user_accounts = $channelmanagement_framework_user_accounts->get_accounts_for_user($managers[$first_key]['user_id']);
 
         jr_import('channelmanagement_rentalsunited_communication');
         $this->channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
-        $this->channelmanagement_rentalsunited_communication->set_username($user_accounts['rentalsunited']['channel_management_rentals_united_username']);
-        $this->channelmanagement_rentalsunited_communication->set_password($user_accounts['rentalsunited']['channel_management_rentals_united_password']);
 
-        $endpoint = 'Pull_GetLocationByName_RQ/'.$booking_data_response->data->response[0]->guest_data->country;
-       // var_dump($endpoint);exit;
-        $location_data = $this->channelmanagement_rentalsunited_communication->communicate( array( "LocationName" => $booking_data_response->data->response[0]->guest_data->country  ) , 'Pull_GetLocationByName_RQ');
+         $auth = get_auth();
+
+        $output = array(
+            "AUTHENTICATION" => $auth,
+            "LOCATION" => $booking_data_response->data->response[0]->guest_data->country
+        );
+
+
+        $tmpl = new patTemplate();
+        $tmpl->addRows('pageoutput', array($output));
+        $tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
+        $tmpl->readTemplatesFromInput('Pull_GetLocationByName_RQ.xml');
+        $xml_str = $tmpl->getParsedTemplate();
+
+        $location_data = $this->channelmanagement_rentalsunited_communication->communicate( 'Pull_GetLocationByName_RQ' , $xml_str );
 
         if ( !isset($location_data["LocationID"]) || $location_data["LocationID"] == 0 ) {
-            return;
+            throw new Exception ( "Could not identify the property location");
         }
+
+
+
+/*        $availability_request = array ( 'PropertyID' => $remote_property_uid, 'DateFrom' =>  $booking_data_response->data->response[0]->date_from, 'DateTo' =>  $booking_data_response->data->response[0]->date_to);
+
+        $availability_request_response = $this->channelmanagement_rentalsunited_communication->communicate(  $availability_request , 'Pull_ListPropertyAvailabilityCalendar_RQ');
+
+        var_dump( $availability_request_response);exit;*/
 
 		$output = array();
 		$pageoutput = array();
 
-        $output['GUEST_NUMBER'] = $booking_data_response->data->response[0]->guest_numbers->number_of_guests;
-
-        if (  $output['GUEST_NUMBER'] == 0 ) { // Xml will not be parsed properly if guest numbers aren't set so we'll default to 2 as a fallback
-            $output['GUEST_NUMBER'] = 2;
-        }
+        $output['AUTHENTICATION'] = get_auth();
 
         $output['NAME'] = $booking_data_response->data->response[0]->guest_data->enc_firstname;
         $output['SURNAME'] = $booking_data_response->data->response[0]->guest_data->enc_surname;
@@ -141,6 +148,10 @@ class Push_PutConfirmedReservationMulti_RQ
         $r['REMOTE_PROPERTY_UID'] = $remote_property_uid;
         $r['DATE_FROM'] = $booking_data_response->data->response[0]->date_from;
         $r['DATE_TO'] = $booking_data_response->data->response[0]->date_to;
+        $r['GUEST_NUMBER'] = $booking_data_response->data->response[0]->guest_numbers->number_of_guests;
+        if (  $r['GUEST_NUMBER'] == 0 ) { // Xml will not be parsed properly if guest numbers aren't set so we'll default to 2 as a fallback
+            $r['GUEST_NUMBER'] = 2;
+        }
         if ( $booking_data_response->data->response[0]->deposit_paid ) {
             $r['ALREADYPAID'] = $booking_data_response->data->response[0]->deposit_amount;
         } ELSE {
@@ -160,10 +171,29 @@ class Push_PutConfirmedReservationMulti_RQ
         $tmpl->setRoot( $ePointFilepath.'templates'.JRDS."xml" );
         $tmpl->readTemplatesFromInput( $target_xml_file );
         $xml = $tmpl->getParsedTemplate();
-        $xml = trim(preg_replace('/^\h*\v+/m', '', $xml));
-        $notification = $this->channelmanagement_rentalsunited_communication->communicate( array( ) , 'Push_PutConfirmedReservationMulti_RQ' , array ( 'Reservation' => $xml) );
+        $xml_str = trim(preg_replace('/^\h*\v+/m', '', $xml));
 
-        var_dump($notification);exit;
+        $notification = $this->channelmanagement_rentalsunited_communication->communicate( 'Push_PutConfirmedReservationMulti_RQ' , $xml_str );
+
+        if ( isset($notification['ReservationID']) && $notification['ReservationID'] > 0) {
+
+			$data_array = array (
+                "property_uid"			=> $data->property_uid,
+                "remote_booking_id"		=> $notification['ReservationID'],
+                "local_booking_id"		=> $data->contract_uid
+            );
+
+            $response = $channelmanagement_framework_singleton->rest_api_communicate( $this_channel , 'PUT' , 'cmf/property/booking/link' , $data_array );
+var_dump($response);exit;
+            $message = "Forwarded booking to channel : ".serialize($notification);
+            logging::log_message($message, 'CHANNEL_MANAGEMENT_FRAMEWORK', 'INFO');
+
+
+
+        } else {
+            $message = "Failed to forward booking to channel, response from channel : ".serialize($notification);
+            logging::log_message($message, 'CHANNEL_MANAGEMENT_FRAMEWORK', 'ERROR');
+        }
 
         return $xml;
 	}

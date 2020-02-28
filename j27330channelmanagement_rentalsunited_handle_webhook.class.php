@@ -41,12 +41,15 @@ class j27330channelmanagement_rentalsunited_handle_webhook
 		}
 		
 		$this_channel = 'rentalsunited';
-		
+
+        logging::log_message("Starting RU 27330 webhook handling" , 'CHANNEL_MANAGEMENT_FRAMEWORK', 'DEBUG' , '' );
+
 		// This script will collate and send information to the remote site using the authentication information provided in the componentArgs variable.
 		$ePointFilepath=get_showtime('ePointFilepath');
-		
+
 		jr_import('channelmanagement_rentalsunited_push_event_trigger_crossref');
 		$event_trigger_crossref = new channelmanagement_rentalsunited_push_event_trigger_crossref();
+
 		$push_events = $event_trigger_crossref->events;
 		$webhook_event = $componentArgs['webhook_notification']->webhook_event;
 		$channel_data = $componentArgs['channel_data'];
@@ -58,25 +61,23 @@ class j27330channelmanagement_rentalsunited_handle_webhook
 				foreach ( $push_tasks as $task ) {
 					$file_name = $ePointFilepath.'xml_'.$task.'.php';
 					//todo make this try catch
-					if (file_exists($file_name)) {
-						$class_name = $task;
-						require_once($file_name);
-						$new_class = new $class_name();
-						$xml = $new_class->trigger_event($webhook_event , $componentArgs['webhook_notification']->data , $channel_data , $managers , $this_channel );
-						unset($new_class);
-						var_dump($file_name);
-					}
+                    try {
+                        if (file_exists($file_name)) {
+                            $class_name = $task;
+                            logging::log_message("About to run class : " .$class_name, 'CHANNEL_MANAGEMENT_FRAMEWORK', 'DEBUG' , '' );
+                            require_once($file_name);
+                            $new_class = new $class_name();
+                            $new_class->trigger_event($webhook_event , $componentArgs['webhook_notification']->data , $channel_data , $managers , $this_channel );
+                            unset($new_class);
+                        }
+                    } catch (Exception $e) {
+                        logging::log_message("Failed to send notification to remote channel, failed with message ".$e->getMessage() , 'CHANNEL_MANAGEMENT_FRAMEWORK', 'ERROR' , '' );
+                    }
 				}
 			}
 		}
-		
-
-		
-
 		logging::log_message("Completed RU 27330 webhook handling" , 'CHANNEL_MANAGEMENT_FRAMEWORK', 'DEBUG' , '' );
 	}
-
-	
 
 	public function getRetVals()
 	{

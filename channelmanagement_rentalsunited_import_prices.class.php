@@ -16,8 +16,9 @@ defined( '_JOMRES_INITCHECK' ) or die( '' );
 class channelmanagement_rentalsunited_import_prices
 {
 	
-	public static function import_prices( $channel , $remote_property_id = 0 , $property_uid = 0 , $sleeps = 0 , $room_type_id = 0  )
+	public static function import_prices(  $manager_id , $channel , $remote_property_id = 0 , $property_uid = 0 , $sleeps = 0 , $room_type_id = 0  )
 	{
+
 		if ( (int)$remote_property_id == 0 ) {
 			throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYID_NOTSET','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYID_NOTSET',false) );
 		}
@@ -33,26 +34,37 @@ class channelmanagement_rentalsunited_import_prices
 		if ( (int)$room_type_id == 0 ) {
 			throw new Exception( "Room type id is not set " );
 		}
-		
-		$JRUser									= jomres_singleton_abstract::getInstance( 'jr_user' );
-		
-		jr_import('channelmanagement_framework_user_accounts');
-		$channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
-		$user_accounts = $channelmanagement_framework_user_accounts->get_accounts_for_user($JRUser->id);
 
-		jr_import('channelmanagement_rentalsunited_communication');
-		$channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
-		$channelmanagement_rentalsunited_communication->set_username($user_accounts['rentalsunited']['channel_management_rentals_united_username']);
-		$channelmanagement_rentalsunited_communication->set_password($user_accounts['rentalsunited']['channel_management_rentals_united_username']);
-		
-		$DateFrom	=  date ( "Y-m-d" , strtotime("now") ); 
-		$DateTo		= date ( "Y-m-d" , strtotime(" +1 year ") ) ;
-		
-		$remote_prices = $channelmanagement_rentalsunited_communication->communicate( array( "PropertyID" => $remote_property_id , "DateFrom" => $DateFrom , "DateTo"  => $DateTo ) , 'Pull_ListPropertyPrices_RQ' );
-		
-		$remote_availability = $channelmanagement_rentalsunited_communication->communicate( array( "PropertyID" => $remote_property_id , "DateFrom" => $DateFrom , "DateTo"  =>$DateTo ) , 'Pull_ListPropertyAvailabilityCalendar_RQ' );
-		
-		
+        jr_import('channelmanagement_rentalsunited_communication');
+        $channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
+
+        set_showtime("property_managers_id" ,  $manager_id );
+        $auth = get_auth();
+
+        $output = array(
+            "AUTHENTICATION" => $auth,
+            "PROPERTY_ID" => $remote_property_id,
+            "DATE_FROM" => date ( "Y-m-d" , strtotime("now") ),
+            "DATE_TO" => date ( "Y-m-d" , strtotime(" +1 year ") )
+        );
+
+
+        $tmpl = new patTemplate();
+        $tmpl->addRows('pageoutput', array($output));
+        $tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
+        $tmpl->readTemplatesFromInput('Pull_ListPropertyPrices_RQ.xml');
+        $xml_str = $tmpl->getParsedTemplate();
+
+		$remote_prices = $channelmanagement_rentalsunited_communication->communicate( 'Pull_ListPropertyPrices_RQ' , $xml_str );
+
+        $tmpl = new patTemplate();
+        $tmpl->addRows('pageoutput', array($output));
+        $tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
+        $tmpl->readTemplatesFromInput('Pull_ListPropertyAvailabilityCalendar_RQ.xml');
+        $xml_str = $tmpl->getParsedTemplate();
+
+		$remote_availability = $channelmanagement_rentalsunited_communication->communicate( 'Pull_ListPropertyAvailabilityCalendar_RQ' , $xml_str );
+
 		$atts = '@attributes';
 		$CalDays = array();
 

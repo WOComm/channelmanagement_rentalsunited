@@ -17,58 +17,24 @@ use XMLParser\XMLParser;
 
 class channelmanagement_rentalsunited_communication
 	{
-	/*
-	The username
-	*/
-	private $username = '';
-	
-	/*
-	The password
-	*/
-	private $password = '';
-	
 
-	
+
 	function __construct()
 	{
 		$this->url = 'http://rm.rentalsunited.com/api/Handler.ashx';
 	}
 
-		
-	public function set_username($username = '')
-	{
-		if ($username == '' ){
-			throw new Exception("username not sent to communication class");
-		}
-		$this->username = $username;
-	}
-	
-	public function set_password($password = '')
-	{
-		if ($password == '' ){
-			throw new Exception("password not sent to communication class");
-		}
-		$this->password = $password;
-	}
-	
 	/*
 	
 	
 	*/
 	
-	public function communicate($data_array = array() , $method = 'Pull_ListProp_RQ' , $xml_array = '' )
+	public function communicate( $method = '' , $xml_str = '' )
 	{
-		if ($this->username == '' ){
-			throw new Exception("username not available to communication class");
-		}
-		
-		if ($this->password == '' ){
-			throw new Exception("password not available to communication class");
-		}
-
 		// Webhook events will use this method, but we don't (?) want to cache the messages so we'll not cache them
 		$method_can_be_cached = true;
 
+        jr_import('channelmanagement_rentalsunited_push_event_trigger_crossref');
         $event_trigger_crossref = new channelmanagement_rentalsunited_push_event_trigger_crossref();
 		foreach ( $event_trigger_crossref->events as $event_type ) {
             if ( in_array( $method , $event_type )) {
@@ -77,9 +43,8 @@ class channelmanagement_rentalsunited_communication
         }
 
 		if ( $method_can_be_cached ) {
-            $user_hash = md5($this->username);
-            $data_hash = md5(serialize($data_array));
-            $filename = $user_hash."_".$method."_".$data_hash.".php";
+            $data_hash = md5(serialize($xml_str));
+            $filename = $method."_".$data_hash.".php";
 
             if (!is_dir(JOMRES_TEMP_ABSPATH."cm_ru_data_cache")) {
                 mkdir(JOMRES_TEMP_ABSPATH."cm_ru_data_cache");
@@ -87,39 +52,13 @@ class channelmanagement_rentalsunited_communication
 
             if (file_exists( JOMRES_TEMP_ABSPATH."cm_ru_data_cache".JRDS.$filename )) {
                 require_once(JOMRES_TEMP_ABSPATH."cm_ru_data_cache".JRDS.$filename);
-                $class_name = $user_hash."_".$method."_".$data_hash;
+                $class_name = $method."_".$data_hash;
                 $ru_data_cache = new $class_name();
                 return unserialize($ru_data_cache->data);
             }
         }
 
-
-		$authentication = array (
-			"Authentication" => array (
-				"UserName" => $this->username,
-				"Password" => $this->password,
-			)
-		);
-
-
-        if ( !empty($xml_array) ) {
-            foreach ($xml_array as $key => $val ) {
-                $new_xml = simplexml_load_string($val, "SimpleXMLElement", LIBXML_NOCDATA);
-                $json = json_encode($new_xml);
-                $array = json_decode($json,TRUE);
-                $arr[$key] = $array;
-            }
-            $data = array_merge($authentication , $arr);
-        } else {
-            $data = array_merge($authentication , $data_array);
-        }
-
-		$xml = XMLParser::encode($data , $method );
-
-       // $body = $xml->asXML();
-       // $body = str_replace(array('.', ' ', "\n", "\t", "\r"), "" , $body );
-var_dump($xml->asXML());exit;
-		try {
+ 		try {
 			$uri = $this->url;
 
 			$client = new GuzzleHttp\Client(['timeout' => 6, 'connect_timeout' => 6]);
@@ -130,13 +69,14 @@ var_dump($xml->asXML());exit;
 				'headers' => [
 					'Content-Type' => 'text/xml; charset=UTF8',
 				],
-				'body' => str_replace('<?xml version="1.0" encoding="UTF-8"?>' , '' , $xml->asXML()),
+				'body' => str_replace('<?xml version="1.0" encoding="UTF-8"?>' , '' , $xml_str),
 			];
 
 			$response = $client->request('POST', $uri, $options);
 
 		}
 		catch (Exception $e) {
+            var_dump($e->getMessage());exit;
 			logging::log_message("Failed to get response from channel manager. Message ".$e->getMessage(), 'channel_management', 'ERROR' , "rentalsunited" );
 			return false;
 		}
@@ -150,35 +90,44 @@ var_dump($xml->asXML());exit;
 		$response_body = new SimpleXMLElement($raw_response);
 
 		$contents = $this->xmlToArray($response_body );
-        if($method == 'Push_PutConfirmedReservationMulti_RQ') {
-            var_dump($contents);exit;
+
+		// Check to see if the response contains _RS, which means that it's a response to a push method. If so we will process it differently
+		$response_method = str_replace( "_RQ" , "_RS" , $method);
+
+        // There's a typo in RU's responses, Pull_GetLocatinByName_RS is returned when it should say Pull_GetLocationByName_RS, so we'll make a special exception and hard-code a fix here
+        if ($method == "Pull_GetLocationByName_RQ") {
+            if (!isset($contents[$response_method])) { // In case they ever fix the typo
+                $response_method = "Pull_GetLocatinByName_RS";
+            }
+
         }
-		reset($contents);
-		$first_key = key($contents);
 
-		if (!isset($contents[$first_key]['Status']) || $contents[$first_key]['Status']['value'] != "Success") {
-			return false;
-		}
-
-        if ( $method_can_be_cached ) {
-            $cache_data = "<?php
-                defined(\"_JOMRES_INITCHECK\" ) or die( \"\" );
-                class " . $user_hash . "_" . $method . "_" . $data_hash . " 
-                {
-                    public function __construct()
+        if ( isset($contents[$response_method])) {
+            if ( $method_can_be_cached ) {
+                $sanitised_apostrophes = str_replace("'", "&#39;", $contents[$response_method]);
+                $cache_data = "<?php
+                    defined(\"_JOMRES_INITCHECK\" ) or die( \"\" );
+                    class " . $method . "_" . $data_hash . " 
                     {
-                        \$this->username = '" . $this->username . "';
-                        \$this->method =  '" . $method . "';
-                        \$this->data = '" . serialize($contents[$first_key]) . "';
+                        public function __construct()
+                        {
+                            \$this->method =  '" . $method . "';
+                            \$this->data = '" . serialize($sanitised_apostrophes) . "';
+                        }
                     }
-                    
-                }
-			";
+                ";
 
-            file_put_contents(JOMRES_TEMP_ABSPATH . "cm_ru_data_cache" . JRDS . $filename, $cache_data);
+                file_put_contents(JOMRES_TEMP_ABSPATH . "cm_ru_data_cache" . JRDS . $filename, $cache_data);
+                return  $sanitised_apostrophes;
+            } else {
+                var_dump($contents[$response_method]);exit;
+                return $contents[$response_method];
+            }
+
+        } else {
+
         }
-		
-		return $contents[$first_key];
+
 		}
 		
 		

@@ -22,18 +22,26 @@ class channelmanagement_rentalsunited_list_remote_properties
     
 	function get_remote_properties()
 	{
-		$JRUser									= jomres_singleton_abstract::getInstance( 'jr_user' );
-		
-		jr_import('channelmanagement_framework_user_accounts');
-		$channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
-		$user_accounts = $channelmanagement_framework_user_accounts->get_accounts_for_user($JRUser->id);
+        jr_import('channelmanagement_rentalsunited_communication');
+        $channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
 
-		jr_import('channelmanagement_rentalsunited_communication');
-		$this->channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
-		$this->channelmanagement_rentalsunited_communication->set_username($user_accounts['rentalsunited']['channel_management_rentals_united_username']);
-		$this->channelmanagement_rentalsunited_communication->set_password($user_accounts['rentalsunited']['channel_management_rentals_united_password']);
+		$JRUser									= jomres_singleton_abstract::getInstance( 'jr_user' );
+
+        set_showtime("property_managers_id" ,  $JRUser->id );
+        $auth = get_auth();
+
+        $output = array(
+            "AUTHENTICATION" => $auth
+        );
+
+
+        $tmpl = new patTemplate();
+        $tmpl->addRows('pageoutput', array($output));
+        $tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
+        $tmpl->readTemplatesFromInput('Pull_ListProp_RQ.xml');
+        $xml_str = $tmpl->getParsedTemplate();
 		
-		$property_data = $this->channelmanagement_rentalsunited_communication->communicate( array() , 'Pull_ListProp_RQ' );
+		$property_data = $channelmanagement_rentalsunited_communication->communicate(  'Pull_ListProp_RQ' , $xml_str );
 
 		$remote_property_ids = array();
 		if ($property_data['Status']["value"] == "Success" ) {

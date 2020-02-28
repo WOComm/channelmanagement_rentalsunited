@@ -34,6 +34,11 @@ class j00005channelmanagement_rentalsunited {
 			
 		require_once($ePointFilepath.'functions.php');
 		jr_import('channelmanagement_rentalsunited_import_property');
+        require_once($ePointFilepath.'xml_authentication.php');
+        if(!defined('RENTALS_UNITED_PLUGIN_ROOT')) {
+            define ('RENTALS_UNITED_PLUGIN_ROOT' , $ePointFilepath );
+        }
+
 		}
 
 	// This must be included in every Event/Mini-component

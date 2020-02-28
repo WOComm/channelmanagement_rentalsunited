@@ -1,0 +1,7 @@
+<patTemplate:tmpl name="pageoutput">
+<Pull_ListProp_RQ>
+    {AUTHENTICATION}
+    <LocationID>0</LocationID>
+    <IncludeNLA>true</IncludeNLA>
+</Pull_ListProp_RQ>
+</patTemplate:tmpl>

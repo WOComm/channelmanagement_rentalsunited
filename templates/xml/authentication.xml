@@ -1,0 +1,6 @@
+<patTemplate:tmpl name="pageoutput" unusedvars="strip">
+    <Authentication>
+        <UserName>{USERNAME}</UserName>
+        <Password>{PASSWORD}</Password>
+    </Authentication>
+</patTemplate:tmpl>

@@ -1,0 +1,8 @@
+<patTemplate:tmpl name="pageoutput">
+    <Pull_ListPropertyPrices_RQ>
+        {AUTHENTICATION}
+        <PropertyID>{PROPERTY_ID}</PropertyID>
+        <DateFrom>{DATE_FROM}</DateFrom>
+        <DateTo>{DATE_TO}</DateTo>
+    </Pull_ListPropertyPrices_RQ>
+</patTemplate:tmpl>
