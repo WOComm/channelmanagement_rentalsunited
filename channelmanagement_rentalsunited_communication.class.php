@@ -42,6 +42,10 @@ class channelmanagement_rentalsunited_communication
             }
         }
 
+		if ($method == 'Pull_ListPropertiesChangeLog_RQ' ) {
+			$method_can_be_cached = false;
+		}
+
 		if ( $method_can_be_cached ) {
             $data_hash = md5(serialize($xml_str));
             $filename = $method."_".$data_hash.".php";
@@ -76,8 +80,11 @@ class channelmanagement_rentalsunited_communication
 
 		}
 		catch (Exception $e) {
+			echo "Failed to get response from channel
+			";
+
             var_dump($e->getMessage());exit;
-			logging::log_message("Failed to get response from channel manager. Message ".$e->getMessage(), 'channel_management', 'ERROR' , "rentalsunited" );
+			logging::log_message("Failed to get response from channel manager. Message ".$e->getMessage(), 'CHANNEL_MANAGEMENT_FRAMEWORK', 'ERROR' , "rentalsunited" );
 			return false;
 		}
 
@@ -120,8 +127,7 @@ class channelmanagement_rentalsunited_communication
                 file_put_contents(JOMRES_TEMP_ABSPATH . "cm_ru_data_cache" . JRDS . $filename, $cache_data);
                 return  $sanitised_apostrophes;
             } else {
-                var_dump($contents[$response_method]);exit;
-                return $contents[$response_method];
+                 return $contents[$response_method];
             }
 
         } else {

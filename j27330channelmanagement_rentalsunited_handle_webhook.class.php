@@ -60,7 +60,7 @@ class j27330channelmanagement_rentalsunited_handle_webhook
 			if (!empty($push_tasks) ) {
 				foreach ( $push_tasks as $task ) {
 					$file_name = $ePointFilepath.'xml_'.$task.'.php';
-					//todo make this try catch
+
                     try {
                         if (file_exists($file_name)) {
                             $class_name = $task;

@@ -1,0 +1,10 @@
+<patTemplate:tmpl name="pageoutput">
+<Pull_ListPropertiesChangeLog_RQ>
+    {AUTHENTICATION}
+    <PropertyIDs>
+       <patTemplate:tmpl name="rows">
+       <PropertyID>{PROPERTY_ID}</PropertyID>
+       </patTemplate:tmpl>
+    </PropertyIDs>
+</Pull_ListPropertiesChangeLog_RQ>
+</patTemplate:tmpl>

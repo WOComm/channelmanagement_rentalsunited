@@ -1,6 +1,0 @@
-<patTemplate:tmpl name="pageoutput">
-<Pull_ListPropertyChangeLog_RQ>
-    {AUTHENTICATION}
-    <PropertyID>{PROPERTY_ID}</PropertyID>
-</Pull_ListPropertyChangeLog_RQ>
-</patTemplate:tmpl>
