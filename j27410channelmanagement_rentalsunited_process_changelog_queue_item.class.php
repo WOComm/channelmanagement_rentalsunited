@@ -21,7 +21,7 @@ defined('_JOMRES_INITCHECK') or die('');
  *
  */
 
-class j27400channelmanagement_rentalsunited_process_changelog_queue_item
+class j27410channelmanagement_rentalsunited_process_changelog_queue_item
 {
     /**
      *
@@ -40,21 +40,20 @@ class j27400channelmanagement_rentalsunited_process_changelog_queue_item
             return;
         }
 
-   /*     $auth = get_auth();
 
-        $output = array(
-            "AUTHENTICATION" => $auth,
-            "LOCATION" => $booking_data_response->data->response[0]->guest_data->country
-        );
+        $item = unserialize($componentArgs->item);
 
 
-        $tmpl = new patTemplate();
-        $tmpl->addRows('pageoutput', array($output));
-        $tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
-        $tmpl->readTemplatesFromInput('Pull_GetLocationByName_RQ.xml');
-        $xml_str = $tmpl->getParsedTemplate();
 
-        $location_data = $this->channelmanagement_rentalsunited_communication->communicate( 'Pull_GetLocationByName_RQ' , $xml_str );*/
+		if ($componentArgs->id == 6 ) {
+			$new_class_name = 'channelmanagement_rentalsunited_changelog_item_update_'.strtolower($item->thing);
+			jr_import($new_class_name );
+			if (class_exists($new_class_name)) {
+				$thing_class_result = new $new_class_name($componentArgs);
+			}
+
+		}
+
     }
 
     public function getRetVals()

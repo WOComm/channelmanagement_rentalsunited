@@ -141,20 +141,6 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
 					$item = new stdClass();
 					$item->remote_property_id = $remote_property_id;
 					$item->local_property_id = $local_property_id;
-					$item->thing = 'Pricing';
-					$item->last_updated = $property_changelog['Pricing'];
-
-					$items[] = array(
-						"channel_name" => $channel_name,
-						"local_property_id" => $local_property_id,
-						"unique_id" => strtotime($property_changelog['Pricing']),
-						"completed" => false,
-						"item" => $item
-					);
-
-					$item = new stdClass();
-					$item->remote_property_id = $remote_property_id;
-					$item->local_property_id = $local_property_id;
 					$item->thing = 'Availability';
 					$item->last_updated = $property_changelog['Availability'];
 

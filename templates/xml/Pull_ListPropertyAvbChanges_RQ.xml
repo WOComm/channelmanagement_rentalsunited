@@ -1,0 +1,7 @@
+<patTemplate:tmpl name="pageoutput">
+    <Pull_ListPropertyAvbChanges_RQ>
+        {AUTHENTICATION}
+        <PropertyID>{PROPERTY_ID}</PropertyID>
+        <Since>{SINCE_DATE}</Since>
+    </Pull_ListPropertyAvbChanges_RQ>
+</patTemplate:tmpl>

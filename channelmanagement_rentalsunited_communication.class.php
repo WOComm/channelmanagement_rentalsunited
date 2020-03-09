@@ -29,7 +29,7 @@ class channelmanagement_rentalsunited_communication
 	
 	*/
 	
-	public function communicate( $method = '' , $xml_str = '' )
+	public function communicate( $method = '' , $xml_str = '' , $clear_cache = false )
 	{
 		// Webhook events will use this method, but we don't (?) want to cache the messages so we'll not cache them
 		$method_can_be_cached = true;
@@ -43,6 +43,10 @@ class channelmanagement_rentalsunited_communication
         }
 
 		if ($method == 'Pull_ListPropertiesChangeLog_RQ' ) {
+			$method_can_be_cached = false;
+		}
+
+		if ($clear_cache == true ) {
 			$method_can_be_cached = false;
 		}
 
@@ -68,12 +72,12 @@ class channelmanagement_rentalsunited_communication
 			$client = new GuzzleHttp\Client(['timeout' => 6, 'connect_timeout' => 6]);
 
 			logging::log_message('Starting guzzle call to '.$uri, 'Guzzle', 'DEBUG');
-			
+			//var_dump($xml_str);exit;
 			$options = [
 				'headers' => [
 					'Content-Type' => 'text/xml; charset=UTF8',
 				],
-				'body' => str_replace('<?xml version="1.0" encoding="UTF-8"?>' , '' , $xml_str),
+				'body' => str_replace(array('.', ' ', "\n", "\t", "\r"), '',  $xml_str ),
 			];
 
 			$response = $client->request('POST', $uri, $options);
@@ -93,7 +97,7 @@ class channelmanagement_rentalsunited_communication
 		}
 		
 		$raw_response = (string)$response->getBody();
-
+var_dump($raw_response);exit;
 		$response_body = new SimpleXMLElement($raw_response);
 
 		$contents = $this->xmlToArray($response_body );

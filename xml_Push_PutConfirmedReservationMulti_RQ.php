@@ -184,7 +184,7 @@ class Push_PutConfirmedReservationMulti_RQ
             );
 
             $response = $channelmanagement_framework_singleton->rest_api_communicate( $this_channel , 'PUT' , 'cmf/property/booking/link' , $data_array );
-var_dump($response);exit;
+
             $message = "Forwarded booking to channel : ".serialize($notification);
             logging::log_message($message, 'CHANNEL_MANAGEMENT_FRAMEWORK', 'INFO');
 
