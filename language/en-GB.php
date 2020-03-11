@@ -19,8 +19,8 @@ jr_define('CHANNELMANAGEMENT_RENTALSUNITED_USERNAME_DESC',"Your Rentals United u
 jr_define('CHANNELMANAGEMENT_RENTALSUNITED_PASSWORD_TITLE',"RU Password");
 jr_define('CHANNELMANAGEMENT_RENTALSUNITED_PASSWORD_DESC',"Your Rentals United password");
 
-jr_define('CHANNELMANAGEMENT_RENTALSUNITED_USERNAME_NOT_SET',"Error, your Rentals United username is not set. Visit the Property Configuration > Rentals United Integration tab to save  your username.");
-jr_define('CHANNELMANAGEMENT_RENTALSUNITED_PASSWORD_NOT_SET',"Error, your Rentals United password is not set. Visit the Property Configuration > Rentals United Integration tab to save  your password.");
+jr_define('CHANNELMANAGEMENT_RENTALSUNITED_USERNAME_NOT_SET',"Error, your Rentals United username is not set. Visit the Property Configuration > Channel Manager accounts tab to save  your username.");
+jr_define('CHANNELMANAGEMENT_RENTALSUNITED_PASSWORD_NOT_SET',"Error, your Rentals United password is not set. Visit the Property Configuration > Channel Manager accounts tab to save  your password.");
 
 jr_define('CHANNELMANAGEMENT_RENTALSUNITED_USERNAME_NOT_SET_ADMIN_SANITY_CHECK_MESSAGE',"Error, your Rentals United username is not set. Visit Site Configuration > Channel Manager Accounts tab to save  your username.");
 jr_define('CHANNELMANAGEMENT_RENTALSUNITED_PASSWORD_NOT_SET_ADMIN_SANITY_CHECK_MESSAGE',"Error, your Rentals United password is not set. Visit Site Configuration > Channel Manager Accounts tab to save  your password.");
