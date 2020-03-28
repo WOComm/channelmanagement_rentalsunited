@@ -380,10 +380,7 @@ class channelmanagement_rentalsunited_import_property
 			$channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/features/' , $data_array );
 			
 			// Publishing
-			$data_array = array (
-				"property_uid"			=> $new_property_id
-			);
-			$property_status_response = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/status/' , $data_array );
+			$property_status_response = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/status/'.$new_property_id , array() );
 			
 			if (isset($property_status_response->data->response) && (int)$property_status_response->data->response->status_code == 2 ) {
 				$data_array = array (
