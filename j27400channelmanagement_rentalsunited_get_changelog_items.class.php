@@ -50,10 +50,12 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
         }
 
 
-        $first_property = reset($local_properties);
+       	reset($local_properties);
+		$first_property_key = key($local_properties);
+		$first_property = $local_properties[$first_property_key];
 
         $channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
-        $manager_accounts = $channelmanagement_framework_user_accounts->find_channel_owners_for_property($first_property->local_property_uid);
+        $manager_accounts = $channelmanagement_framework_user_accounts->find_channel_owners_for_property($first_property['local_property_uid']);
         $first_manager_id = (int)array_key_first ($manager_accounts);
         if (!isset($first_manager_id) ||  $first_manager_id == 0 ) {
             return;
@@ -61,6 +63,10 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
 
         set_showtime("property_managers_id" , $first_manager_id );
         $auth = get_auth();
+
+		if (is_null($auth)) { // RU might be installed but not yet configured, let's back out for now
+			return;
+		}
 
         jr_import('channelmanagement_rentalsunited_communication');
         $this->channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();

@@ -26,6 +26,11 @@ function get_auth() {
     }
 
     $channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
+
+    if ( !isset( $user_accounts['rentalsunited']['channel_management_rentals_united_username']) || !isset( $user_accounts['rentalsunited']['channel_management_rentals_united_password']) ) {
+		return ;
+	}
+
     if ( $property_managers_id != "system" ) {
         $user_accounts = $channelmanagement_framework_user_accounts->get_accounts_for_user($property_managers_id);
         $username = $user_accounts['rentalsunited']['channel_management_rentals_united_username'];
