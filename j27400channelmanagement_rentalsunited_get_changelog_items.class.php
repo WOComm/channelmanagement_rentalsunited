@@ -42,14 +42,27 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
 
         $channel_name = 'rentalsunited';
 
-        // First we will find our property ids
-        $local_properties = channelmanagement_framework_properties::get_local_property_ids_for_channel(  $channel_name );
+		$local_properties = array();
+
+		if (!empty($all_channel_ids)) {
+			foreach ( $all_channel_ids as $channel_name=>$channel ) {
+				foreach ( $channel as $record ) {
+					// First we will find our property ids
+					$properties = channelmanagement_framework_properties::get_local_property_ids_for_channel(  $record['id'] );
+					if (!empty($properties)) {
+						$local_properties[$channel_name][ $record['id']] = $properties;
+					}
+				}
+			}
+		}
 
         if (empty($local_properties)) {
             return;
         }
 
-
+		if (!isset($local_properties[$channel_name]) ) {
+			return;
+		}
        	reset($local_properties);
 		$first_property_key = key($local_properties);
 		$first_property = $local_properties[$first_property_key];
@@ -72,6 +85,7 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
         $this->channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
 
         $rows = array();
+        var_dump($local_property);exit;
         foreach ($local_properties as $local_property) {
             $r = array();
             $r['PROPERTY_ID'] = $local_property->remote_property_uid;

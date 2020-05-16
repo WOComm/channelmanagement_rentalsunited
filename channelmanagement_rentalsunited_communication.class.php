@@ -68,7 +68,7 @@ class channelmanagement_rentalsunited_communication
 
  		try {
 			$uri = $this->url;
-
+			$xml_str = preg_replace('/^\h*\v+/m', '', $xml_str);
 			$client = new GuzzleHttp\Client(['timeout' => 6, 'connect_timeout' => 6]);
 
 			logging::log_message('Starting guzzle call to '.$uri, 'Guzzle', 'DEBUG');
@@ -78,6 +78,7 @@ class channelmanagement_rentalsunited_communication
 					'Content-Type' => 'text/xml; charset=UTF8',
 				],
 				'body' => str_replace(array('.', ' ', "\n", "\t", "\r"), '',  $xml_str ),
+				'debug' => false
 			];
 
 			$response = $client->request('POST', $uri, $options);
@@ -97,7 +98,10 @@ class channelmanagement_rentalsunited_communication
 		}
 		
 		$raw_response = (string)$response->getBody();
-var_dump($raw_response);exit;
+		if ($raw_response == '<error ID="-4">Incorrect login or password</error>') {
+			throw new Exception( "Incorrect login or password" );
+		}
+
 		$response_body = new SimpleXMLElement($raw_response);
 
 		$contents = $this->xmlToArray($response_body );
