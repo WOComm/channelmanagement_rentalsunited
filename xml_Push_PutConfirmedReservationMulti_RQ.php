@@ -45,7 +45,10 @@ class Push_PutConfirmedReservationMulti_RQ
 		// var_dump($managers);exit;
         //var_dump($managers);exit;
 		// We need the manager's id, if we can't find it we'll back out
-        $first_key = array_key_first ($managers);
+
+		reset($managers);
+		$first_key = key($managers);
+
         if ( !isset($managers[$first_key]['user_id']) ||  $managers[$first_key]['user_id'] == 0 ) {
             throw new Exception ( "Cannot identify property manager's id");
         } else {
