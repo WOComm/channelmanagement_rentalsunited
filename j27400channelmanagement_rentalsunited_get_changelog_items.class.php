@@ -204,7 +204,7 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
 						try {
 							channelmanagement_framework_utilities:: store_queue_item($item);
 						} catch (Exception $e) {
-							logging::log_message("Failed to get store queue item for channel " . $channel_name . ". Message " . $e->getMessage(), 'CHANNEL_MANAGEMENT_FRAMEWORK', 'ERROR', serialize($item));
+							logging::log_message("Failed to get store queue item for channel " . $channel_name . ". Message " . $e->getMessage(), 'RENTALS_UNITED', 'ERROR', serialize($item));
 						}
 					}
 				}

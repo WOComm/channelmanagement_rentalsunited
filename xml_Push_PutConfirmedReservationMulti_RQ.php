@@ -186,13 +186,13 @@ class Push_PutConfirmedReservationMulti_RQ
             $response = $channelmanagement_framework_singleton->rest_api_communicate( $this_channel , 'PUT' , 'cmf/property/booking/link' , $data_array );
 
             $message = "Forwarded booking to channel : ".serialize($notification);
-            logging::log_message($message, 'CHANNEL_MANAGEMENT_FRAMEWORK', 'INFO');
+            logging::log_message($message, 'RENTALS_UNITED', 'INFO');
 
 
 
         } else {
             $message = "Failed to forward booking to channel, response from channel : ".serialize($notification);
-            logging::log_message($message, 'CHANNEL_MANAGEMENT_FRAMEWORK', 'ERROR');
+            logging::log_message($message, 'RENTALS_UNITED', 'ERROR');
         }
 
         return $xml;

@@ -72,31 +72,30 @@ class channelmanagement_rentalsunited_communication
 			$client = new GuzzleHttp\Client(['timeout' => 6, 'connect_timeout' => 6]);
 
 			logging::log_message('Starting guzzle call to '.$uri, 'Guzzle', 'DEBUG');
-			//var_dump($xml_str);exit;
+
 			$options = [
 				'headers' => [
 					'Content-Type' => 'text/xml; charset=UTF8',
 				],
-				'body' => str_replace(array('.', ' ', "\n", "\t", "\r"), '',  $xml_str ),
+				'body' => $xml_str,
 				'debug' => false
 			];
 
 			$response = $client->request('POST', $uri, $options);
-
 		}
 		catch (Exception $e) {
 			echo "Failed to get response from channel
 			";
 
             var_dump($e->getMessage());exit;
-			logging::log_message("Failed to get response from channel manager. Message ".$e->getMessage(), 'CHANNEL_MANAGEMENT_FRAMEWORK', 'ERROR' , "rentalsunited" );
+			logging::log_message("Failed to get response from channel manager. Message ".$e->getMessage(), 'RENTALS_UNITED', 'ERROR' , "rentalsunited" );
 			return false;
 		}
 
 		if (!isset($response)) {
 			return false;
 		}
-		
+
 		$raw_response = (string)$response->getBody();
 		if ($raw_response == '<error ID="-4">Incorrect login or password</error>') {
 			throw new Exception( "Incorrect login or password" );
