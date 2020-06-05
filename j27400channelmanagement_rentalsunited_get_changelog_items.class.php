@@ -42,176 +42,159 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
 
         $channel_name = 'rentalsunited';
 
-		$local_properties = array();
+		jr_import('channelmanagement_rentalsunited_communication');
 
-		if (!empty($all_channel_ids)) {
-			foreach ( $all_channel_ids as $channel_name=>$channel ) {
-				foreach ( $channel as $record ) {
-					// First we will find our property ids
-					$properties = channelmanagement_framework_properties::get_local_property_ids_for_channel(  $record['id'] );
-					if (!empty($properties)) {
-						$local_properties[$channel_name][ $record['id']] = $properties;
-					}
-				}
-			}
-		}
+        // We need to get the changelog for each manager from RU so the first job is to get all manager IDs
 
-        if (empty($local_properties)) {
-            return;
-        }
+		$managers = channelmanagement_framework_utilities::get_manager_ids_by_channel_name( $channel_name );
 
-		if (!isset($local_properties[$channel_name]) ) {
-			return;
-		}
-       	reset($local_properties);
-		$first_property_key = key($local_properties);
-		$first_property = $local_properties[$first_property_key];
-
-        $channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
-        $manager_accounts = $channelmanagement_framework_user_accounts->find_channel_owners_for_property($first_property['local_property_uid']);
-        $first_manager_id = (int)array_key_first ($manager_accounts);
-        if (!isset($first_manager_id) ||  $first_manager_id == 0 ) {
-            return;
-        }
-
-        set_showtime("property_managers_id" , $first_manager_id );
-        $auth = get_auth();
-
-		if (is_null($auth)) { // RU might be installed but not yet configured, let's back out for now
+		if (empty($managers)) { // There aren't any managers with channels, nothing to do
 			return;
 		}
 
-        jr_import('channelmanagement_rentalsunited_communication');
-        $this->channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
-
-        $rows = array();
-        var_dump($local_property);exit;
-        foreach ($local_properties as $local_property) {
-            $r = array();
-            $r['PROPERTY_ID'] = $local_property->remote_property_uid;
-            $rows[] = $r;
-        }
-
-        $output = array(
-            "AUTHENTICATION" => $auth
-            );
+		jr_import('channelmanagement_framework_queue_handling');
+		$channelmanagement_framework_queue_handling = new channelmanagement_framework_queue_handling();
 
 
-        $tmpl = new patTemplate();
-        $tmpl->addRows('pageoutput', array($output));
-        $tmpl->addRows('rows', $rows);
-      	$tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
-        $tmpl->readTemplatesFromInput('Pull_ListPropertiesChangeLog_RQ.xml');
-        $xml_str = $tmpl->getParsedTemplate();
+		foreach ($managers as $manager) {
 
-        $changelog_items = $this->channelmanagement_rentalsunited_communication->communicate( 'Pull_ListPropertiesChangeLog_RQ' , $xml_str );
+			$manager_id = $manager['cms_user_id'];
+			$channel_id = $manager['channel_id'];
 
-		$atts = '@attributes';
+			set_showtime("property_managers_id" , $manager_id );
+			$auth = get_auth();
 
-        if ( isset ($changelog_items['ChangeLogs']['ChangeLog']) && !empty($changelog_items['ChangeLogs']['ChangeLog']) ) {
-        	foreach ($changelog_items['ChangeLogs']['ChangeLog'] as $property_changelog ) {
+			if (!is_null($auth)) { // RU might be installed but not yet configured, let's back out for now
 
-          		$remote_property_id = $property_changelog[$atts]['PropertyID'];
+				$channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
 
-        		// The queuing system allows for a very broad set of data to be stored for processing by this thin plugin's 27410 script, so you can store pretty much anything you want in it's "item" field. This allows individual channels a lot of freedom as to what they want to store for later processing. The data is serialized before storage so pass an array or object or whatever you need
-				// Each thing to be stored should be saved as an individual "thing" to be checked/updated as only one thing will be processed at a time later on to ensure that each "thing" has time to be processed successfully
-				// Completed flag is provided so that you can mark a job completed or not completed as required
+				$rows = array();
 
-				$local_property_id = 0;
-				foreach ($local_properties as $local_property ) {
+				$local_properties = channelmanagement_framework_properties::get_local_property_ids_for_channel($channel_id);
 
-					if ($remote_property_id == $local_property->remote_property_uid ) {
-						$local_property_id = $local_property->local_property_uid;
+				if (!empty($local_properties)) {
+					foreach ($local_properties as $local_property) {
+						$r = array();
+						$r['PROPERTY_ID'] = $local_property["remote_property_uid"];
+						$rows[] = $r;
 					}
-				}
 
-				if ( $local_property_id > 0 ) {
-					$items = array();
-
-					$item = new stdClass();
-
-					$item->remote_property_id = $remote_property_id;
-					$item->local_property_id = $local_property_id;
-					$item->thing = 'StaticData';
-					$item->last_updated = $property_changelog['StaticData'];
-
-					$items[] = array(
-						"channel_name" => $channel_name,
-						"local_property_id" => $local_property_id,
-						"unique_id" => strtotime($property_changelog['StaticData']),
-						"completed" => false,
-						"item" => $item
-
+					$output = array(
+						"AUTHENTICATION" => $auth
 					);
 
-					$item = new stdClass();
-					$item->remote_property_id = $remote_property_id;
-					$item->local_property_id = $local_property_id;
-					$item->thing = 'Pricing';
-					$item->last_updated = $property_changelog['Pricing'];
+					$tmpl = new patTemplate();
+					$tmpl->addRows('pageoutput', array($output));
+					$tmpl->addRows('rows', $rows);
+					$tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
+					$tmpl->readTemplatesFromInput('Pull_ListPropertiesChangeLog_RQ.xml');
+					$xml_str = $tmpl->getParsedTemplate();
 
-					$items[] = array(
-						"channel_name" => $channel_name,
-						"local_property_id" => $local_property_id,
-						"unique_id" => strtotime($property_changelog['Pricing']),
-						"completed" => false,
-						"item" => $item
-					);
+					$changelog_items = $channelmanagement_rentalsunited_communication->communicate( 'Pull_ListPropertiesChangeLog_RQ' , $xml_str );
 
-					$item = new stdClass();
-					$item->remote_property_id = $remote_property_id;
-					$item->local_property_id = $local_property_id;
-					$item->thing = 'Availability';
-					$item->last_updated = $property_changelog['Availability'];
+					$atts = '@attributes';
 
-					$items[] = array(
-						"channel_name" => $channel_name,
-						"local_property_id" => $local_property_id,
-						"unique_id" => strtotime($property_changelog['Availability']),
-						"completed" => false,
-						"item" => $item
-					);
+					if ( isset ($changelog_items['ChangeLogs']['ChangeLog']) && !empty($changelog_items['ChangeLogs']['ChangeLog']) ) {
+						foreach ($changelog_items['ChangeLogs']['ChangeLog'] as $property_changelog ) {
+							if ($property_changelog[$atts]['IsActive'] == "true" ) {
+								$remote_property_id = $property_changelog[$atts]['PropertyID'];
 
-					$item = new stdClass();
-					$item->remote_property_id = $remote_property_id;
-					$item->local_property_id = $local_property_id;
-					$item->thing = 'Image';
-					$item->last_updated = $property_changelog['Image'];
+								// The queuing system allows for a very broad set of data to be stored for processing by this thin plugin's 27410 script, so you can store pretty much anything you want in it's "item" field. This allows individual channels a lot of freedom as to what they want to store for later processing. The data is serialized before storage so pass an array or object or whatever you need
+								// Each thing to be stored should be saved as an individual "thing" to be checked/updated as only one thing will be processed at a time later on to ensure that each "thing" has time to be processed successfully
+								// Completed flag is provided so that you can mark a job completed or not completed as required
 
-					$items[] = array(
-						"channel_name" => $channel_name,
-						"local_property_id" => $local_property_id,
-						"unique_id" => strtotime($property_changelog['Image']),
-						"completed" => false,
-						"item" => $item
-					);
+								$local_property_id = 0;
+								foreach ($local_properties as $local_property ) {
+									if ($remote_property_id == $local_property['remote_property_uid'] ) {
+										$local_property_id = $local_property['local_property_uid'];
+									}
+								}
 
-					$item = new stdClass();
-					$item->remote_property_id = $remote_property_id;
-					$item->local_property_id = $local_property_id;
-					$item->thing = 'Description';
-					$item->last_updated = $property_changelog['Description'];
+								// We will not set the completed flag here, as any item added to the table for that property with an identical unique id is updated
+								if ( $local_property_id > 0 ) {
+									$items = array();
 
-					$items[] = array(
-						"channel_name" => $channel_name,
-						"local_property_id" => $local_property_id,
-						"unique_id" => strtotime($property_changelog['Description']),
-						"completed" => false,
-						"item" => $item
-					);
+									$item = new stdClass();
 
-					foreach ($items as $item) {
-						try {
-							channelmanagement_framework_utilities:: store_queue_item($item);
-						} catch (Exception $e) {
-							logging::log_message("Failed to get store queue item for channel " . $channel_name . ". Message " . $e->getMessage(), 'RENTALS_UNITED', 'ERROR', serialize($item));
+									$item->remote_property_id = $remote_property_id;
+									$item->local_property_id = $local_property_id;
+									$item->thing = 'StaticData';
+									$item->last_updated = $property_changelog['StaticData'];
+
+									$items[] = array(
+										"channel_name" => $channel_name,
+										"local_property_id" => $local_property_id,
+										"unique_id" => $channel_name." ".$property_changelog['StaticData'],
+										"item" => $item
+
+									);
+
+									$item = new stdClass();
+									$item->remote_property_id = $remote_property_id;
+									$item->local_property_id = $local_property_id;
+									$item->thing = 'Pricing';
+									$item->last_updated = $property_changelog['Pricing'];
+
+									$items[] = array(
+										"channel_name" => $channel_name,
+										"local_property_id" => $local_property_id,
+										"unique_id" => $channel_name." ".$property_changelog['Pricing'],
+										"item" => $item
+									);
+
+									$item = new stdClass();
+									$item->remote_property_id = $remote_property_id;
+									$item->local_property_id = $local_property_id;
+									$item->thing = 'Availability';
+									$item->last_updated = $property_changelog['Availability'];
+
+									$items[] = array(
+										"channel_name" => $channel_name,
+										"local_property_id" => $local_property_id,
+										"unique_id" => $channel_name." ".$property_changelog['Availability'],
+										"item" => $item
+									);
+
+									$item = new stdClass();
+									$item->remote_property_id = $remote_property_id;
+									$item->local_property_id = $local_property_id;
+									$item->thing = 'Image';
+									$item->last_updated = $property_changelog['Image'];
+
+									$items[] = array(
+										"channel_name" => $channel_name,
+										"local_property_id" => $local_property_id,
+										"unique_id" => $channel_name." ".$property_changelog['Image'],
+										"item" => $item
+									);
+
+									$item = new stdClass();
+									$item->remote_property_id = $remote_property_id;
+									$item->local_property_id = $local_property_id;
+									$item->thing = 'Description';
+									$item->last_updated = $property_changelog['Description'];
+
+									$items[] = array(
+										"channel_name" => $channel_name,
+										"local_property_id" => $local_property_id,
+										"unique_id" => $channel_name." ".$property_changelog['Description'],
+										"item" => $item
+									);
+
+									foreach ($items as $item) {
+										try {
+											$channelmanagement_framework_queue_handling->store_queue_item($item);
+										} catch (Exception $e) {
+											logging::log_message("Failed to get store queue item for channel " . $channel_name . ". Message " . $e->getMessage(), 'RENTALS_UNITED', 'ERROR', serialize($item));
+										}
+									}
+								}
+							}
 						}
 					}
 				}
 			}
 		}
-
-
     }
 
     public function getRetVals()
