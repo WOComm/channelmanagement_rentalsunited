@@ -25,11 +25,13 @@ class channelmanagement_rentalsunited_changelog_item_update_pricing
 			throw new Exception('Item object is empty');
 		}
 
+		return;
+
 		/* Last modification of the property's data (living space, address, coordinates, amenities, composition, etc.) */
 		jr_import('channelmanagement_rentalsunited_communication');
 		$channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
 
-		$changelog_item = unserialize($item->item);
+		$changelog_item = unserialize(base64_decode($item->item));
 
 		$channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
 		$manager_accounts = $channelmanagement_framework_user_accounts->find_channel_owners_for_property($item->property_uid);

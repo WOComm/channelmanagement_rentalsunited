@@ -186,7 +186,6 @@ class channelmanagement_rentalsunited_import_prices
 				}
 
 			}
-			echo "Hix";exit;
 		}
 
 		return true;

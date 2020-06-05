@@ -95,7 +95,14 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
 					$atts = '@attributes';
 
 					if ( isset ($changelog_items['ChangeLogs']['ChangeLog']) && !empty($changelog_items['ChangeLogs']['ChangeLog']) ) {
-						foreach ($changelog_items['ChangeLogs']['ChangeLog'] as $property_changelog ) {
+
+						if ( isset($changelog_items['ChangeLogs']["ChangeLog"][$atts]) ) { // RU returns an array of changelogs if we request changelogs for more than one property, but just a changelog if we request changes for just one property so here we will rejig the array to make it parsable by the same foreach loop
+							$tmp_arr = array($changelog_items['ChangeLogs']["ChangeLog"]);
+							$changelog_items['ChangeLogs']["ChangeLog"] = $tmp_arr;
+						}
+
+						foreach ($changelog_items['ChangeLogs']["ChangeLog"] as $property_changelog ) {
+
 							if ($property_changelog[$atts]['IsActive'] == "true" ) {
 								$remote_property_id = $property_changelog[$atts]['PropertyID'];
 
@@ -116,74 +123,79 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
 
 									$item = new stdClass();
 
-									$item->remote_property_id = $remote_property_id;
-									$item->local_property_id = $local_property_id;
-									$item->thing = 'StaticData';
-									$item->last_updated = $property_changelog['StaticData'];
+									$item->remote_property_id	= $remote_property_id;
+									$item->local_property_id	= $local_property_id;
+									$item->thing				= 'StaticData';
+									$item->last_updated			= $property_changelog['StaticData'];
+									$item->manager_id			= $manager_id;
 
 									$items[] = array(
-										"channel_name" => $channel_name,
-										"local_property_id" => $local_property_id,
-										"unique_id" => $channel_name." ".$property_changelog['StaticData'],
-										"item" => $item
+										"channel_name"		=> $channel_name,
+										"local_property_id"	=> $local_property_id,
+										"unique_id"			=> $channel_name." StaticData ".$property_changelog['StaticData'],
+										"item"				=> $item
 
 									);
 
 									$item = new stdClass();
-									$item->remote_property_id = $remote_property_id;
-									$item->local_property_id = $local_property_id;
-									$item->thing = 'Pricing';
-									$item->last_updated = $property_changelog['Pricing'];
+									$item->remote_property_id	= $remote_property_id;
+									$item->local_property_id	= $local_property_id;
+									$item->thing				= 'Pricing';
+									$item->last_updated			= $property_changelog['Pricing'];
+									$item->manager_id			= $manager_id;
 
 									$items[] = array(
-										"channel_name" => $channel_name,
-										"local_property_id" => $local_property_id,
-										"unique_id" => $channel_name." ".$property_changelog['Pricing'],
-										"item" => $item
+										"channel_name"		=> $channel_name,
+										"local_property_id"	=> $local_property_id,
+										"unique_id"			=> $channel_name." Pricing ".$property_changelog['Pricing'],
+										"item"				=> $item
 									);
 
 									$item = new stdClass();
-									$item->remote_property_id = $remote_property_id;
-									$item->local_property_id = $local_property_id;
-									$item->thing = 'Availability';
-									$item->last_updated = $property_changelog['Availability'];
+									$item->remote_property_id	= $remote_property_id;
+									$item->local_property_id	= $local_property_id;
+									$item->thing				= 'Availability';
+									$item->last_updated			= $property_changelog['Availability'];
+									$item->manager_id			= $manager_id;
 
 									$items[] = array(
-										"channel_name" => $channel_name,
-										"local_property_id" => $local_property_id,
-										"unique_id" => $channel_name." ".$property_changelog['Availability'],
-										"item" => $item
+										"channel_name"		=> $channel_name,
+										"local_property_id"	=> $local_property_id,
+										"unique_id"			=> $channel_name." Availability ".$property_changelog['Availability'],
+										"item"				=> $item
 									);
 
 									$item = new stdClass();
-									$item->remote_property_id = $remote_property_id;
-									$item->local_property_id = $local_property_id;
-									$item->thing = 'Image';
-									$item->last_updated = $property_changelog['Image'];
+									$item->remote_property_id	= $remote_property_id;
+									$item->local_property_id	= $local_property_id;
+									$item->thing				= 'Image';
+									$item->last_updated			= $property_changelog['Image'];
+									$item->manager_id			= $manager_id;
 
 									$items[] = array(
-										"channel_name" => $channel_name,
-										"local_property_id" => $local_property_id,
-										"unique_id" => $channel_name." ".$property_changelog['Image'],
-										"item" => $item
+										"channel_name"		=> $channel_name,
+										"local_property_id"	=> $local_property_id,
+										"unique_id"			=> $channel_name." Image ".$property_changelog['Image'],
+										"item"				=> $item
 									);
 
 									$item = new stdClass();
-									$item->remote_property_id = $remote_property_id;
-									$item->local_property_id = $local_property_id;
-									$item->thing = 'Description';
-									$item->last_updated = $property_changelog['Description'];
+									$item->remote_property_id	= $remote_property_id;
+									$item->local_property_id	= $local_property_id;
+									$item->thing				= 'Description';
+									$item->last_updated			= $property_changelog['Description'];
+									$item->manager_id			= $manager_id;
 
 									$items[] = array(
-										"channel_name" => $channel_name,
-										"local_property_id" => $local_property_id,
-										"unique_id" => $channel_name." ".$property_changelog['Description'],
-										"item" => $item
+										"channel_name"		=> $channel_name,
+										"local_property_id"	=> $local_property_id,
+										"unique_id"			=> $channel_name." Description ".$property_changelog['Description'],
+										"item"				=> $item
 									);
 
 									foreach ($items as $item) {
 										try {
-											$channelmanagement_framework_queue_handling->store_queue_item($item);
+											$id = $channelmanagement_framework_queue_handling->store_queue_item($item);
 										} catch (Exception $e) {
 											logging::log_message("Failed to get store queue item for channel " . $channel_name . ". Message " . $e->getMessage(), 'RENTALS_UNITED', 'ERROR', serialize($item));
 										}

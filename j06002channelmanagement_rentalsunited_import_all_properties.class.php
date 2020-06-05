@@ -56,7 +56,7 @@ class j06002channelmanagement_rentalsunited_import_all_properties {
 					try  {
 						channelmanagement_rentalsunited_import_property::import_property( $current_channel , $property['ID']["value"] , $mapped_dictionary_items , $JRUser->userid );
 					} catch (Exception $e) {
-						logging::log_message(" Failed  to import property : ".$e->getMessage(), 'ERROR');
+						logging::log_message(" Failed  to import property : ".$e->getMessage(), 'RENTALS_UNITED' , 'ERROR');
 					}
 				}
 			}

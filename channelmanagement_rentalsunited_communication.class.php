@@ -71,7 +71,7 @@ class channelmanagement_rentalsunited_communication
 			$xml_str = preg_replace('/^\h*\v+/m', '', $xml_str);
 			$client = new GuzzleHttp\Client(['timeout' => 6, 'connect_timeout' => 6]);
 
-			logging::log_message('Starting guzzle call to '.$uri, 'Guzzle', 'DEBUG');
+			logging::log_message('Starting guzzle call to '.$uri, 'RENTALS_UNITED', 'DEBUG');
 
 			$options = [
 				'headers' => [
