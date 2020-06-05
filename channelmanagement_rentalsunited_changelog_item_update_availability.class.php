@@ -44,9 +44,10 @@ class channelmanagement_rentalsunited_changelog_item_update_availability
 
 		// We need to find the "since" date, so we'll go through the previous queue items, find any that refer to availability then find the last two items. The very last should be this item, the one before that will be the last time availability was checked. If that doesn't exist then we'll use "this" item's last updated date
 
+		jr_import('channelmanagement_framework_queue_handling');
+		$channelmanagement_framework_queue_handling = new channelmanagement_framework_queue_handling();
 
-
-		$all_queue_items = channelmanagement_framework_utilities:: get_all_queue_items_for_property($item->property_uid);
+		$all_queue_items = $channelmanagement_framework_queue_handling->get_all_queue_items_for_property($item->property_uid);
 
 		ksort ( $all_queue_items , SORT_REGULAR  );
 		// Now we will get all of the items that refer to availability
