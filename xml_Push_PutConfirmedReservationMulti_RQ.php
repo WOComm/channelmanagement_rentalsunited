@@ -150,7 +150,7 @@ class Push_PutConfirmedReservationMulti_RQ
 
         $r['REMOTE_PROPERTY_UID'] = $remote_property_uid;
         $r['DATE_FROM'] = $booking_data_response->data->response[0]->date_from;
-        $r['DATE_TO'] = $booking_data_response->data->response[0]->date_to;
+        $r['DATE_TO'] = date ("Y-m-d" ,strtotime( $booking_data_response->data->response[0]->date_to . " +1 day" ));
         $r['GUEST_NUMBER'] = $booking_data_response->data->response[0]->guest_numbers->number_of_guests;
         if (  $r['GUEST_NUMBER'] == 0 ) { // Xml will not be parsed properly if guest numbers aren't set so we'll default to 2 as a fallback
             $r['GUEST_NUMBER'] = 2;
