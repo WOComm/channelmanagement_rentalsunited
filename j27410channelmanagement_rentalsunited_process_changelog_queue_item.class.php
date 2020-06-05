@@ -40,8 +40,13 @@ class j27410channelmanagement_rentalsunited_process_changelog_queue_item
             return;
         }
 
-
         $item = unserialize(base64_decode($componentArgs->item));
+
+		if ( $item->manager_id == 0 ) {
+			throw new Exception('Error: Manager id not set');
+		}
+		$channelmanagement_framework_singleton = jomres_singleton_abstract::getInstance('channelmanagement_framework_singleton');
+		$channelmanagement_framework_singleton->proxy_manager_id = $item->manager_id;
 
 		$new_class_name = 'channelmanagement_rentalsunited_changelog_item_update_'.strtolower($item->thing);
 		jr_import($new_class_name );
