@@ -30,5 +30,6 @@
 		</CustomerInfo>
 		<Comments>{COMMENTS}</Comments>
 	</Reservation>
+	<QuoteModeId>2</QuoteModeId>
 </Push_PutConfirmedReservationMulti_RQ>
 </patTemplate:tmpl>
