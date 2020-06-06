@@ -47,9 +47,9 @@ function get_property_room_types_rentalsunited( $mapped_dictionary_items, $Compo
 
 function get_property_type_rentalsunited( $mapped_dictionary_items , $ObjectTypeID )
 {
-	if (isset($remote_property['Property']['ObjectTypeID'])){
+	if (isset($ObjectTypeID)){
 		foreach ($mapped_dictionary_items['Pull_ListOTAPropTypes_RQ'] as $mapped_property_type) {
-			if ($remote_property['Property']['ObjectTypeID'] == $mapped_property_type->remote_item_id) {
+			if ($ObjectTypeID == $mapped_property_type->remote_item_id) {
 				$local_property_type = $mapped_property_type->jomres_id;
 				$mrp_srp_flag = channelmanagement_rentalsunited_import_property::get_property_type_booking_model( $local_property_type ); // Is this an MRP or SRP?
 			}
