@@ -19,9 +19,14 @@ class channelmanagement_rentalsunited_import_property
 	public static function import_property( $channel , $remote_property_id = 0 , $proxy_id = 0 )
 	{
 
+		$JRUser									= jomres_singleton_abstract::getInstance( 'jr_user' );
 		$channelmanagement_framework_singleton = jomres_singleton_abstract::getInstance('channelmanagement_framework_singleton');
+		$channelmanagement_framework_singleton->init(999999999);
+
 
 		$mapped_dictionary_items = channelmanagement_framework_utilities :: get_mapped_dictionary_items ( $channel , $mapped_to_jomres_only = true );
+
+		$channelmanagement_framework_singleton->proxy_manager_id = $JRUser->userid;
 
         jr_import('channelmanagement_rentalsunited_communication');
         $channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
@@ -92,25 +97,32 @@ class channelmanagement_rentalsunited_import_property
 					$region_id = $location_information->jomres_region_id;
 				}
 
-
-
 				$local_property_type = 0;
 
 				if (isset($remote_property['Property']['ObjectTypeID'])){
-					$local_property_type = 0;
+
 					foreach ($mapped_dictionary_items['Pull_ListOTAPropTypes_RQ'] as $mapped_property_type) {
 						if ($remote_property['Property']['ObjectTypeID'] == $mapped_property_type->remote_item_id) {
 							$local_property_type = $mapped_property_type->jomres_id;
 						}
 					}
-
-					// local property type was never found for this property. Throw an error and stop trying as we can't create the property
-					if ( $local_property_type == 0 ) {
-						throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
-					}
 				} else {
 					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_REMOTEPROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_REMOTEPROPERTYTYPE_NOTFOUND',false) );
 				}
+
+				// local property type was never found for this property. Throw an error and stop trying as we can't create the property
+				if ( $local_property_type == 0 ) {
+					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
+				}
+
+				$jomres_property_types = jomres_singleton_abstract::getInstance('jomres_property_types');
+				$jomres_property_types->get_all_property_types();
+
+				if ( !isset($jomres_property_types->property_types[$local_property_type]) ) {
+					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
+				}
+
+				$mrp_srp_flag = $jomres_property_types->property_types[$local_property_type];
 
 				$new_property_basics_array =  array (
 					"property_name" => $remote_property['Property']['Name'] ,
@@ -129,9 +141,18 @@ class channelmanagement_rentalsunited_import_property
 
 				$new_property_id = $response->data->response;
 
-				if ($new_property_id < 1 ) {
+				if ((int)$new_property_id < 1 ) {
 					throw new Exception( "Did not receive new property uid, failed to create property." );
 				}
+
+				// Policy is to not allow editing of property configuration through the Jomres UI.
+				// A normal user should not be able to  edit the settings locally, instead it is preferred that they change the settings on the parent and allow those changes to trickle down to the child. The only things that should be send upstream to the parent are bookings and reviews (todo).
+				// To enforce that policy, we set the management_url flag, however if this server is in development mode (e.g. you are writing your own thin plugin) then it's helpful to set the allow_channel_property_local_admin option to 1 so that you can inspect the property's local configuration
+
+				// If, as the thin plugin developer, you want to send more upstream then of course you can write your own code to support that and leave the management url unset
+
+				$siteConfig = jomres_singleton_abstract::getInstance('jomres_config_site_singleton');
+				$jrConfig = $siteConfig->get();
 
 				// Management url
 				$data_array = array (
@@ -141,8 +162,23 @@ class channelmanagement_rentalsunited_import_property
 
 				$channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/management/url' , $data_array );
 
-				// Pulls webhook events from the remote server, inserts them into the queue and then processes those queue items
-				// Slightly iffy in that rooms should be created before tariffs, otherwise we might have problems
+				$allow_channel_property_local_admin = 0;
+				if ($jrConfig['development_production'] == 'development') { // If we are in development mode, we don't want to use caching
+					$allow_channel_property_local_admin = 1;
+				}
+
+				$settings = array (
+					"property_currencycode"					=> $remote_property['Property'][$atts]['Currency'],  // The property's currency code
+					"singleRoomProperty"					=> $mrp_srp_flag, // Is the property an MRP or an SRP?
+					"tariffmode" 							=> '2',  // Micromanage automatically
+					"allow_channel_property_local_admin"	=> $allow_channel_property_local_admin
+				);
+
+				$post_data = array ( "property_uid"		=>$new_property_id , "params" => json_encode($settings) ); // mrConfig array values are property specific settings
+				$settings_response = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/settings' , $post_data );
+
+				// Pulls changelog events from the remote server, inserts them into the queue and then processes those queue items
+				// These are the same tasks that are performed as cron jobs at quarter hourly intervals
 
 				$MiniComponents = jomres_singleton_abstract::getInstance('mcHandler');
 				$MiniComponents->specificEvent('06000', 'cron_get_remote_changelog_items', array());

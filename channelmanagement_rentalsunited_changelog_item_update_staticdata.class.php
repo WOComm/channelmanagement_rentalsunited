@@ -27,7 +27,6 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 			throw new Exception('Item object is empty');
 		}
 
-
 		$changelog_item = unserialize(base64_decode($item->item));
 
 		if (!isset($changelog_item->remote_property_id)) {
@@ -175,25 +174,23 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 			$local_property_type = 0;
 
 			if (isset($remote_property['Property']['ObjectTypeID'])){
-				$local_property_type = 0;
 				foreach ($mapped_dictionary_items['Pull_ListOTAPropTypes_RQ'] as $mapped_property_type) {
 					if ($remote_property['Property']['ObjectTypeID'] == $mapped_property_type->remote_item_id) {
-
 						$local_property_type = $mapped_property_type->jomres_id;
-						$mrp_or_srp = channelmanagement_rentalsunited_import_property::get_property_type_booking_model( $local_property_type ); // Is this an MRP or SRP?
+						$mrp_srp_flag = channelmanagement_rentalsunited_import_property::get_property_type_booking_model( $local_property_type ); // Is this an MRP or SRP?
 					}
-				}
-
-				// local property type was never found for this property. Throw an error and stop trying as we can't create the property
-				if ( $local_property_type == 0 ) {
-					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
-				}
-
-				if (!isset($mrp_or_srp)) {
-					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_BOOKING_MODEL_NOT_FOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_BOOKING_MODEL_NOT_FOUND',false) );
 				}
 			} else {
 				throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_REMOTEPROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_REMOTEPROPERTYTYPE_NOTFOUND',false) );
+			}
+
+			// local property type was never found for this property. Throw an error and stop trying as we can't configure the property
+			if ( $local_property_type == 0 ) {
+				throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
+			}
+
+			if ( !isset($mrp_srp_flag) ) {
+				throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_BOOKING_MODEL_NOT_FOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_BOOKING_MODEL_NOT_FOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
 			}
 
 			$new_property = new stdclass();
@@ -233,39 +230,53 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 				"ptype_id" => $local_property_type
 			);
 
-			// Check and create settings
-			$settings = array (
-				"property_currencycode"		=> $remote_property['Property'][$atts]['Currency'],  // The property's currency code
-				"singleRoomProperty"		=> $mrp_or_srp, // Is the property an MRP or an SRP?
-				"tariffmode" 				=> '2'  // Micromanage automatically
-			);
+
 
 			// Room prices
 
+			// $mrp_srp_flag
+			//
+			// 0 = MRP (Hotels, bed & breakfast)
+			// 1 = SRP (Villas, apartments, cottages)
+
+			// Jomres mirrors real-world rooms in hotels whereas for villas there's just one, virtual or invisible room for each villa regardless of the number of real-world rooms in the villa
+			// When configuring your property in RU it's possible to create multiple rooms with items like double beds, cots etc. These are then sent in the Pull_ListSpecProp_RQ response. If the property is an SRP we will furtle with the $property_room_types array, selecting just the first element of the array, and setting it's count to 1, before handing off to the foreach that creates rooms and tariffs
+
+			if ($mrp_srp_flag == 1 ) {
+				$arr					= $property_room_types[0];
+				$arr["count"]			= 1;
+				$property_room_types	= $arr;
+			}
+
 			jr_import('channelmanagement_rentalsunited_import_prices');
-			// $mrp_or_srp
 
-			foreach ($property_room_types as $room_type ) {
 
-				try { // It's ok-ish if this fails, the webhook watcher may put the prices right later
-					channelmanagement_rentalsunited_import_prices::import_prices( $changelog_item->manager_id , $channel , $changelog_item->remote_property_id , $changelog_item->local_property_id , $remote_property['Property']['CanSleepMax'] , $room_type['amenity']->jomres_id );
+			$delete_result = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'DELETE' , 'cmf/property/rooms/'.$changelog_item->local_property_id , [] );
+			// DELETE property rooms will fail if there are bookings for the property
+			// Note, it checks the room_bookings table, not the contracts table
+
+			if ($delete_result->data->response == true) {
+				foreach ($property_room_types as $room_type ) {
+					try { // It's ok-ish if this fails, the webhook watcher may put the prices right later
+						channelmanagement_rentalsunited_import_prices::import_prices( $changelog_item->manager_id , $channel , $changelog_item->remote_property_id , $changelog_item->local_property_id , $remote_property['Property']['CanSleepMax'] , $room_type['amenity']->jomres_id );
+					}
+					catch (Exception $e) {
+						logging::log_message("Failed to add property tariffs. Error message : ".$e->getMessage()." -- Remote property id ".$changelog_item->remote_property_id , 'RENTALS_UNITED', 'INFO' , '' );
+					}
+
+					// Trying to figure out how many rooms there are in the property.
+					$number_of_rooms = floor( (int)$remote_property['Property']['CanSleepMax'] / (int)$remote_property['Property']['StandardGuests'] );
+					if ( $number_of_rooms == 0 ) {
+						$number_of_rooms = 1;
+					}
+
+					$data_array = array (
+						"property_uid"	=> $changelog_item->local_property_id,
+						"rooms"			=> json_encode( array($room_type))
+					);
+
+					$rooms_response = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/rooms/' , $data_array );
 				}
-				catch (Exception $e) {
-					logging::log_message("Failed to add property tariffs. Error message : ".$e->getMessage()." -- Remote property id ".$changelog_item->remote_property_id , 'RENTALS_UNITED', 'INFO' , '' );
-				}
-
-				// Trying to figure out how many rooms there are in the property.
-				$number_of_rooms = floor( (int)$remote_property['Property']['CanSleepMax'] / (int)$remote_property['Property']['StandardGuests'] );
-				if ( $number_of_rooms == 0 ) {
-					$number_of_rooms = 1;
-				}
-
-				$data_array = array (
-					"property_uid"	=> $changelog_item->local_property_id,
-					"rooms"			=> json_encode( array($room_type))
-				);
-
-				$rooms_response = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/rooms/' , $data_array );
 			}
 
 
@@ -280,6 +291,7 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 			$deposit_type	= $remote_property['Property']['Deposit'][$atts]['DepositTypeID'];
 			$deposit_value	= $remote_property['Property']['Deposit']['value'];
 
+			$settings = array();
 			switch ($deposit_type) {
 				case 1:
 					$settings['chargeDepositYesNo'] = "0";

@@ -55,7 +55,6 @@ class j27400channelmanagement_rentalsunited_get_changelog_items
 		jr_import('channelmanagement_framework_queue_handling');
 		$channelmanagement_framework_queue_handling = new channelmanagement_framework_queue_handling();
 
-
 		foreach ($managers as $manager) {
 
 			$manager_id = $manager['cms_user_id'];
