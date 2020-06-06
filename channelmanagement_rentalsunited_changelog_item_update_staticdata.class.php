@@ -117,29 +117,13 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 			// room types
 			$property_room_types = array();
 			if (!empty($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'])){
-				foreach ($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'] as $amenity) {
-					$amenity_id = $amenity[$atts]['CompositionRoomID'];
-					if ($amenity_id == 257 ) {  // Will this change?
-						if ( isset($mapped_dictionary_items['Pull_ListCompositionRooms_RQ']) && array_key_exists ( $amenity_id , $mapped_dictionary_items['Pull_ListCompositionRooms_RQ'] ) ) {
-							$arr = $mapped_dictionary_items['Pull_ListCompositionRooms_RQ'][$amenity_id];
-							unset($arr->item);
-
-							$count = 0;
-							foreach ($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'] as $a) {
-								$a_id = $a[$atts]['CompositionRoomID'];
-								if ( $a_id == $amenity_id ) {
-									$count++;
-								}
-							}
-							$property_room_types[] = array ( "amenity" => $arr , "count" => $count , "max_guests" => $remote_property['Property']['StandardGuests'] ) ;
-						}
-					}
-				}
-				$property_room_types = array_unique($property_room_types, SORT_REGULAR);
+				$property_room_types =get_property_room_types_rentalsunited( $mapped_dictionary_items , $remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities']);
 			}
 
+
 			// room features
-			$property_room_features = array();
+			// Not currently supported
+			/*$property_room_features = array();
 			if (!empty($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities']) && !empty($mapped_dictionary_items['Pull_ListAmenitiesAvailableForRooms_RQ'] )){
 				foreach ($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'] as $amenity) {
 					$amenity_id = $amenity[$atts]['CompositionRoomID'];
@@ -152,7 +136,7 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 
 				}
 				$property_room_features = array_unique($property_room_features, SORT_REGULAR);
-			}
+			}*/
 
 			// Property features
 			$property_features = array();
@@ -171,18 +155,9 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 			}
 
 			// Find the local property type for this property
-			$local_property_type = 0;
-
-			if (isset($remote_property['Property']['ObjectTypeID'])){
-				foreach ($mapped_dictionary_items['Pull_ListOTAPropTypes_RQ'] as $mapped_property_type) {
-					if ($remote_property['Property']['ObjectTypeID'] == $mapped_property_type->remote_item_id) {
-						$local_property_type = $mapped_property_type->jomres_id;
-						$mrp_srp_flag = channelmanagement_rentalsunited_import_property::get_property_type_booking_model( $local_property_type ); // Is this an MRP or SRP?
-					}
-				}
-			} else {
-				throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_REMOTEPROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_REMOTEPROPERTYTYPE_NOTFOUND',false) );
-			}
+			$ptype = get_property_type_rentalsunited( $mapped_dictionary_items , $remote_property['Property']['ObjectTypeID']);
+			$local_property_type	= $ptype['local_property_type'];
+			$mrp_srp_flag 			= $ptype['mrp_srp_flag'];
 
 			// local property type was never found for this property. Throw an error and stop trying as we can't configure the property
 			if ( $local_property_type == 0 ) {
@@ -219,7 +194,9 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 			// Move to tariffs?
 			$new_property->property_details['max_guests']				= $remote_property['Property']['CanSleepMax'];
 
-			$new_property->remote_room_features				= $property_room_features;
+			// Not supported
+			//$new_property->remote_room_features				= $property_room_features;
+
 			$new_property->remote_property_features			= $property_features;
 
 			$new_property_basics_array =  array (
@@ -248,36 +225,7 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 				$property_room_types	= $arr;
 			}
 
-			jr_import('channelmanagement_rentalsunited_import_prices');
 
-
-			$delete_result = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'DELETE' , 'cmf/property/rooms/'.$changelog_item->local_property_id , [] );
-			// DELETE property rooms will fail if there are bookings for the property
-			// Note, it checks the room_bookings table, not the contracts table
-
-			if ($delete_result->data->response == true) {
-				foreach ($property_room_types as $room_type ) {
-					try { // It's ok-ish if this fails, the webhook watcher may put the prices right later
-						channelmanagement_rentalsunited_import_prices::import_prices( $changelog_item->manager_id , $channel , $changelog_item->remote_property_id , $changelog_item->local_property_id , $remote_property['Property']['CanSleepMax'] , $room_type['amenity']->jomres_id );
-					}
-					catch (Exception $e) {
-						logging::log_message("Failed to add property tariffs. Error message : ".$e->getMessage()." -- Remote property id ".$changelog_item->remote_property_id , 'RENTALS_UNITED', 'INFO' , '' );
-					}
-
-					// Trying to figure out how many rooms there are in the property.
-					$number_of_rooms = floor( (int)$remote_property['Property']['CanSleepMax'] / (int)$remote_property['Property']['StandardGuests'] );
-					if ( $number_of_rooms == 0 ) {
-						$number_of_rooms = 1;
-					}
-
-					$data_array = array (
-						"property_uid"	=> $changelog_item->local_property_id,
-						"rooms"			=> json_encode( array($room_type))
-					);
-
-					$rooms_response = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/rooms/' , $data_array );
-				}
-			}
 
 
 			/*

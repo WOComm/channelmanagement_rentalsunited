@@ -97,32 +97,19 @@ class channelmanagement_rentalsunited_import_property
 					$region_id = $location_information->jomres_region_id;
 				}
 
-				$local_property_type = 0;
+				// Find the local property type for this property
+				$ptype = get_property_type_rentalsunited( $mapped_dictionary_items , $remote_property['Property']['ObjectTypeID']);
+				$local_property_type	= $ptype['local_property_type'];
+				$mrp_srp_flag 			= $ptype['mrp_srp_flag'];
 
-				if (isset($remote_property['Property']['ObjectTypeID'])){
-
-					foreach ($mapped_dictionary_items['Pull_ListOTAPropTypes_RQ'] as $mapped_property_type) {
-						if ($remote_property['Property']['ObjectTypeID'] == $mapped_property_type->remote_item_id) {
-							$local_property_type = $mapped_property_type->jomres_id;
-						}
-					}
-				} else {
-					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_REMOTEPROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_REMOTEPROPERTYTYPE_NOTFOUND',false) );
-				}
-
-				// local property type was never found for this property. Throw an error and stop trying as we can't create the property
+				// local property type was never found for this property. Throw an error and stop trying as we can't configure the property
 				if ( $local_property_type == 0 ) {
 					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
 				}
 
-				$jomres_property_types = jomres_singleton_abstract::getInstance('jomres_property_types');
-				$jomres_property_types->get_all_property_types();
-
-				if ( !isset($jomres_property_types->property_types[$local_property_type]) ) {
-					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_PROPERTYTYPE_NOTFOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
+				if ( !isset($mrp_srp_flag) ) {
+					throw new Exception( jr_gettext('CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_BOOKING_MODEL_NOT_FOUND','CHANNELMANAGEMENT_RENTALSUNITED_IMPORT_BOOKING_MODEL_NOT_FOUND',false)." Remote property type ".$remote_property['Property']['ObjectTypeID'] );
 				}
-
-				$mrp_srp_flag = $jomres_property_types->property_types[$local_property_type];
 
 				$new_property_basics_array =  array (
 					"property_name" => $remote_property['Property']['Name'] ,
