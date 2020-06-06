@@ -21,82 +21,90 @@ class channelmanagement_rentalsunited_changelog_item_update_availability
 
 	function __construct($item = null )
 	{
+		$channel = 'rentalsunited';
+
 		if (is_null($item)) {
 			throw new Exception('Item object is empty');
 		}
 
-		/* Last modification of the property's data (living space, address, coordinates, amenities, composition, etc.) */
+		$changelog_item = unserialize(base64_decode($item->item));
+
+		if (!isset($changelog_item->remote_property_id)) {
+			throw new Exception("remote_property_id not set");
+		}
+
+		if (!isset($changelog_item->local_property_id)) {
+			throw new Exception("local_property_id not set");
+		}
+
+		if (!isset($changelog_item->manager_id)) {
+			throw new Exception("manager_id not set");
+		}
+
+
 		jr_import('channelmanagement_rentalsunited_communication');
 		$channelmanagement_rentalsunited_communication = new channelmanagement_rentalsunited_communication();
 
-		$changelog_item = unserialize(base64_decode($item->item));
+		$mapped_dictionary_items = channelmanagement_framework_utilities :: get_mapped_dictionary_items ( $channel , $mapped_to_jomres_only = true );
 
-		return;
 
-		$channelmanagement_framework_user_accounts = new channelmanagement_framework_user_accounts();
-		$manager_accounts = $channelmanagement_framework_user_accounts->find_channel_owners_for_property($item->property_uid);
-		$first_manager_id = (int)array_key_first ($manager_accounts);
-		if (!isset($first_manager_id) ||  $first_manager_id == 0 ) {
-			return;
-		}
+		// Getting mapped dictionary items resets the proxy id, so we need to reset it here to the changelog item's manager id
+		$channelmanagement_framework_singleton = jomres_singleton_abstract::getInstance('channelmanagement_framework_singleton');
+		$channelmanagement_framework_singleton->proxy_manager_id = $changelog_item->manager_id;
 
-		set_showtime("property_managers_id" , $first_manager_id );
+		$property_settings = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'GET' , 'cmf/property/settings/'.$changelog_item->local_property_id , [] );
+
+
+		set_showtime("property_managers_id" , $changelog_item->manager_id );
 		$auth = get_auth();
 
-
-		// We need to find the "since" date, so we'll go through the previous queue items, find any that refer to availability then find the last two items. The very last should be this item, the one before that will be the last time availability was checked. If that doesn't exist then we'll use "this" item's last updated date
-
-		jr_import('channelmanagement_framework_queue_handling');
-		$channelmanagement_framework_queue_handling = new channelmanagement_framework_queue_handling();
-
-		$all_queue_items = $channelmanagement_framework_queue_handling->get_all_queue_items_for_property($item->property_uid);
-
-		ksort ( $all_queue_items , SORT_REGULAR  );
-		// Now we will get all of the items that refer to availability
-
-		$completed_items = array();
-		$uncompleted_items = array();  // In case there are no completed items yet
-		if (!empty($all_queue_items)) {
-			foreach ( $all_queue_items as $queue_item) {
-				$queue_thing = unserialize(base64_decode($queue_item->item));
-				if ($queue_thing->thing == 'Availability') {
-					if ($queue_item->completed == 0 ) {
-						$uncompleted_items[$queue_item->id ] = $queue_item;
-					} else {
-						$completed_items[$queue_item->id ] = $queue_item;
-					}
-				}
-			}
-		}
-
-
-		if (empty($completed_items)) { // None of the queue items have been completed, we'll find the earliest date
-			$since_item = reset($uncompleted_items);
-		} else {
-			$since_item = reset($completed_items);
-		}
-
-		$thing = unserialize(base64_decode($since_item->item));
-
-		$since_date = $thing->last_updated;
+		$date_from	=  date("Y-m-d");
+		$date_to	= date('Y-m-d',strtotime(date("Y-m-d") .'+1 year'));
 
 		$output = array(
 			"AUTHENTICATION" => $auth,
 			"PROPERTY_ID" => $changelog_item->remote_property_id,
-			"SINCE_DATE" => $since_date
+			"LOCATION_ID" => $property_settings->data->response->RENTALSUNITED_SETTING_LocationID,
+			"DATE_FROM"			=> $date_from,
+			"DATE_TO"			=> $date_to
 		);
 
 		$tmpl = new patTemplate();
 		$tmpl->addRows('pageoutput', array($output));
 		$tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
-		$tmpl->readTemplatesFromInput('Pull_ListPropertyAvbChanges_RQ.xml');
+		$tmpl->readTemplatesFromInput('Pull_ListPropertiesBlocks_RQ.xml');
 		$xml_str = $tmpl->getParsedTemplate();
 
-		$remote_property = $channelmanagement_rentalsunited_communication->communicate( 'Pull_ListPropertyAvbChanges_RQ' , $xml_str , $clear_cache = true );
+		$remote_property_blocks = $channelmanagement_rentalsunited_communication->communicate( 'Pull_ListPropertiesBlocks_RQ' , $xml_str , $clear_cache = true );
 
-		var_dump($remote_property);exit;
+		$atts = '@attributes';
+		$blocks = $remote_property_blocks["Properties"]["PropertyBlock"];
 
+		if (isset($blocks[$atts])){ // Only one property was returned, we'll put this one block set into an array and then parse the array
+			$blocks = array ($blocks);
+		}
 
+		if (!empty($blocks)) {
+			foreach ($blocks as $property_blocks) {
+				 if ($property_blocks[$atts]["PropertyID"] == $changelog_item->remote_property_id) {
+				 	if ( isset($property_blocks['Block']) && !empty($property_blocks['Block']) ) {
+				 		foreach ($property_blocks['Block'] as $block ) {
+							$data_array = array (
+								"property_uid"			=> $changelog_item->local_property_id,
+								"availability"			=> json_encode(array (
+									"date_from"			=> $block["DateFrom"],
+									"date_to"			=> $block["DateTo"]
+								)),
+								"room_ids" => '[]',
+								"remote_booking_id" => ''
+							);
+
+							$response = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/blackbooking/' , $data_array );
+				 		}
+					}
+				 }
+			}
+		}
 
 	}
 
