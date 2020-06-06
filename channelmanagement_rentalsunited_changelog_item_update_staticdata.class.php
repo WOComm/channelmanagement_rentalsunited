@@ -80,25 +80,25 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 				throw new Exception(jr_gettext('CHANNELMANAGEMENT_JOMRES2JOMRES_IMPORT_REGION_ID_NOT_FOUND', 'CHANNELMANAGEMENT_JOMRES2JOMRES_IMPORT_REGION_ID_NOT_FOUND', false));
 			}
 
+			$output = array(
+				"AUTHENTICATION" => $auth,
+				"LOCATION_ID" => $remote_property['Property']['DetailedLocationID']['value'],
+			);
+
+			$tmpl = new patTemplate();
+			$tmpl->addRows('pageoutput', array($output));
+			$tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
+			$tmpl->readTemplatesFromInput('Pull_GetLocationDetails_RQ.xml');
+			$xml_str = $tmpl->getParsedTemplate();
+
+			$remote_property_location = $channelmanagement_rentalsunited_communication->communicate( 'Pull_GetLocationDetails_RQ' , $xml_str );
+
 			if ( $response_location_information->data->response->region_id != 0 ) {
 				if (isset($response_location_information->data->response->country_code)) {
 					$country_code = strtoupper(($response_location_information->data->response->country_code));
 					$region_id = $response_location_information->data->response->region_id;
 				}
 			} else {
-				$output = array(
-					"AUTHENTICATION" => $auth,
-					"LOCATION_ID" => $remote_property['Property']['DetailedLocationID']['value'],
-				);
-
-				$tmpl = new patTemplate();
-				$tmpl->addRows('pageoutput', array($output));
-				$tmpl->setRoot(RENTALS_UNITED_PLUGIN_ROOT . 'templates' . JRDS . "xml");
-				$tmpl->readTemplatesFromInput('Pull_GetLocationDetails_RQ.xml');
-				$xml_str = $tmpl->getParsedTemplate();
-
-				$remote_property_location = $channelmanagement_rentalsunited_communication->communicate( 'Pull_GetLocationDetails_RQ' , $xml_str );
-
 				if (!isset($remote_property_location['Locations']['Location'][3]['value'])) {
 					throw new Exception( "Pull_GetLocationDetails_RQ Cannot get detailed location information for property" );
 				}
@@ -111,32 +111,13 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 			}
 
 
-			// We need to collate information about the property, room features, property features etc. Duplicates can appear so we need to array unique the property later
-			// Not the best place for this, probably needs to be in the cmf libs
+			// We need to collate information about the property, room features, property features etc.
 
 			// room types
 			$property_room_types = array();
 			if (!empty($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'])){
-				$property_room_types =get_property_room_types_rentalsunited( $mapped_dictionary_items , $remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities']);
+				$property_room_types =get_property_room_types_rentalsunited( $mapped_dictionary_items , $remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'] , $remote_property['Property']['StandardGuests'] );
 			}
-
-
-			// room features
-			// Not currently supported
-			/*$property_room_features = array();
-			if (!empty($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities']) && !empty($mapped_dictionary_items['Pull_ListAmenitiesAvailableForRooms_RQ'] )){
-				foreach ($remote_property['Property']['CompositionRoomsAmenities']['CompositionRoomAmenities'] as $amenity) {
-					$amenity_id = $amenity[$atts]['CompositionRoomID'];
-
-					if ( isset($mapped_dictionary_items['Pull_ListAmenitiesAvailableForRooms_RQ']) && array_key_exists ( $amenity_id , $mapped_dictionary_items['Pull_ListAmenitiesAvailableForRooms_RQ'] ) ) {
-						$arr = $mapped_dictionary_items['Pull_ListAmenitiesAvailableForRooms_RQ'][$amenity_id];
-						unset($arr->item);
-						$property_room_features[] = $arr;
-					}
-
-				}
-				$property_room_features = array_unique($property_room_features, SORT_REGULAR);
-			}*/
 
 			// Property features
 			$property_features = array();
@@ -225,8 +206,7 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 				$property_room_types	= $arr;
 			}
 
-
-
+			$channelmanagement_framework_singleton->proxy_manager_id = $changelog_item->manager_id;
 
 			/*
 			<DepositType DepositTypeID="1">No deposit</DepositType>
@@ -259,6 +239,8 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 					break;
 			}
 
+			$settings['RENTALSUNITED_SETTING_LocationID'] = $remote_property_location['Locations']['Location'][3][$atts]['LocationID'];
+
 			$post_data = array ( "property_uid"		=> $changelog_item->local_property_id , "params" => json_encode($settings) ); // mrConfig array values are property specific settings
 			$settings_response = $channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/settings' , $post_data );
 
@@ -282,15 +264,16 @@ class channelmanagement_rentalsunited_changelog_item_update_staticdata
 				"fax" 				=> '',
 				"email" 			=> $new_property->property_details['email']
 			);
+
 			$channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/contacts/' , $data_array );
 
 			// Address
 			$data_array = array (
 				"property_uid"	=> $changelog_item->local_property_id,
 				"house"			=> $new_property_basics_array['property_name'],  // The RU data I'm working with doesn't have address details, so to prevent the system from complaining that the property address details are incomplete, we'll set this to blank for now
-				"street" 		=> ' ',
-				"town" 			=> ' ',
-				"postcode"		=> ' '
+				"street" 		=> $remote_property_location['Locations']['Location'][3]['value'],
+				"town" 			=> $remote_property_location['Locations']['Location'][3]['value'],
+				"postcode"		=> $remote_property_location['Locations']['Location'][3]['value']  // Not good enough, but we want the property to be published
 			);
 			$channelmanagement_framework_singleton->rest_api_communicate( $channel , 'PUT' , 'cmf/property/address/' , $data_array );
 
